@@ -5,7 +5,10 @@ const swaggerSpec = require('./config/swagger');
 const userRoutes = require('./routes/userRoutes');
 const academicRoutes = require('./routes/academicRoutes');
 const preProjectRoutes = require('./routes/preProjectRoutes');
-
+const guidanceNotebookRoutes = require('./routes/guidanceNotebookRoutes');
+const scientificArticleRoutes = require('./routes/scientificArticleRoutes');
+const defenseScheduleRoutes = require('./routes/defenseScheduleRoutes');
+const defenseEvaluationRoutes = require('./routes/defenseEvaluationRoutes');
 
 const app = express();
 
@@ -20,6 +23,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Rotas da API
 app.use('/api/users', userRoutes);
 app.use('/api/academic', academicRoutes);
-app.use('/api/preProjectos', preProjectRoutes);
+app.use('/api/pre-projectos', preProjectRoutes);
+app.use('/api/guidance-notebooks', guidanceNotebookRoutes);
+app.use('/api/scientific-articles', scientificArticleRoutes);
+app.use('/api/defenses', defenseScheduleRoutes);
+app.use('/api/evaluations', defenseEvaluationRoutes);
 
 module.exports = app;
