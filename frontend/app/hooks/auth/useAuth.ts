@@ -20,11 +20,11 @@ export const useAuth = () => {
 
             setToken(result.access_token);
 
-            localStorage.setItem("token-dashboard-SADA-TCC", result.access_token);
+            localStorage.setItem("token-dashboard-SADA-TCC", result);
 
             localStorage.setItem(
                 "user-dashboard-SADA-TCC",
-                JSON.stringify(result.user)
+                JSON.stringify(result)
             );
             // console.log("IR")
             navigation.push('/dash')

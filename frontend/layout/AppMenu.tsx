@@ -1,5 +1,11 @@
 // /* eslint-disable @next/next/no-img-element */
 
+import { AppMenuItem } from "@/types";
+import AppMenuitem from "./AppMenuitem";
+import { MenuProvider } from "./context/menucontext";
+import { useEffect, useState } from "react";
+import { getUserFromStorage } from "@/app/api/auth/authService";
+
 // import React, { useContext } from 'react';
 // import AppMenuitem from './AppMenuitem';
 // import { LayoutContext } from './context/layoutcontext';
@@ -140,140 +146,329 @@
 // export default AppMenu;
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useContext } from 'react';
-import AppMenuitem from './AppMenuitem';
-import { LayoutContext } from './context/layoutcontext';
-import { MenuProvider } from './context/menucontext';
-import { AppMenuItem } from '@/types';
+// import React, { useContext } from 'react';
+// import AppMenuitem from './AppMenuitem';
+// import { LayoutContext } from './context/layoutcontext';
+// import { MenuProvider } from './context/menucontext';
+// import { AppMenuItem } from '@/types';
+
+// const AppMenu = () => {
+//     const { layoutConfig } = useContext(LayoutContext);
+
+//     const model: AppMenuItem[] = [
+//         // =========================================================
+//         // 1. PAINEL GERAL
+//         // =========================================================
+//         {
+//             label: 'Painel Geral',
+//             items: [
+//                 {
+//                     label: 'Dashboard',
+//                     icon: 'pi pi-fw pi-home',
+//                     to: '/dashboard'
+//                 },
+//                 {
+//                     label: 'Meu Perfil',
+//                     icon: 'pi pi-fw pi-user',
+//                     to: '/pages/profile'
+//                 }
+//             ]
+//         },
+
+//         // =========================================================
+//         // 2. SUBMISSÃO E APROVAÇÃO DE PRÉ-PROJECTOS
+//         // =========================================================
+//         {
+//             label: 'Pré-Projectos',
+//             icon: 'pi pi-fw pi-file',
+//             items: [
+//                 {
+//                     label: 'Submeter Pré-Projecto',
+//                     icon: 'pi pi-fw pi-upload',
+//                     to: '/pre-projectos/submeter'
+//                 },
+//                 {
+//                     label: 'Gestão de Pré-Projectos',
+//                     icon: 'pi pi-fw pi-list',
+//                     to: '/pre-projectos/gestao'
+//                 },
+//                 {
+//                     label: 'Avaliação de Pré-Projecto',
+//                     icon: 'pi pi-fw pi-check-square',
+//                     to: '/pre-projectos/avaliacao'
+//                 }
+//             ]
+//         },
+
+//         // =========================================================
+//         // 3. CADERNO DE ORIENTAÇÕES
+//         // =========================================================
+//         {
+//             label: 'Caderno de Orientações',
+//             icon: 'pi pi-fw pi-book',
+//             items: [
+//                 {
+//                     label: 'Painel do Caderno',
+//                     icon: 'pi pi-fw pi-chart-bar',
+//                     to: '/orientacoes/dashboard'
+//                 },
+//                 {
+//                     label: 'Sessões e Tarefas',
+//                     icon: 'pi pi-fw pi-calendar',
+//                     to: '/orientacoes/sessoes'
+//                 }
+//             ]
+//         },
+
+//         // =========================================================
+//         // 4. ARTIGO CIENTÍFICO
+//         // =========================================================
+//         {
+//             label: 'Artigo Científico',
+//             icon: 'pi pi-fw pi-file-edit',
+//             items: [
+//                 {
+//                     label: 'Editor IMRaD',
+//                     icon: 'pi pi-fw pi-pencil',
+//                     to: '/artigo/editor'
+//                 }
+//             ]
+//         },
+
+//         // =========================================================
+//         // 5. CALENDÁRIO DE DEFESAS
+//         // =========================================================
+//         {
+//             label: 'Defesas Públicas',
+//             icon: 'pi pi-fw pi-calendar',
+//             items: [
+//                 {
+//                     label: 'Agendar Defesa',
+//                     icon: 'pi pi-fw pi-plus-circle',
+//                     to: '/defesas/agendar'
+//                 },
+//                 {
+//                     label: 'Calendário de Defesas',
+//                     icon: 'pi pi-fw pi-calendar-times',
+//                     to: '/defesas/calendario'
+//                 }
+//             ]
+//         },
+
+//         // =========================================================
+//         // 6. FICHA DE AVALIAÇÃO E ACTA
+//         // =========================================================
+//         {
+//             label: 'Avaliação e Acta',
+//             icon: 'pi pi-fw pi-file-check',
+//             items: [
+//                 {
+//                     label: 'Ficha de Avaliação',
+//                     icon: 'pi pi-fw pi-check-square',
+//                     to: '/avaliacao/ficha'
+//                 },
+//                 {
+//                     label: 'Acta de Defesa',
+//                     icon: 'pi pi-fw pi-file-pdf',
+//                     to: '/avaliacao/acta'
+//                 }
+//             ]
+//         }
+//     ];
+
+//     return (
+//         <MenuProvider>
+//             <ul className="layout-menu">
+//                 {model.map((item, i) => {
+//                     return !item?.seperator ? (
+//                         <AppMenuitem
+//                             item={item}
+//                             root={true}
+//                             index={i}
+//                             key={item.label}
+//                         />
+//                     ) : (
+//                         <li
+//                             className="menu-separator"
+//                             key={`separator-${i}`}
+//                         />
+//                     );
+//                 })}
+//             </ul>
+//         </MenuProvider>
+//     );
+// };
+
+// export default AppMenu;
+
+
+interface AppMenuItemWithRoles extends AppMenuItem {
+    roles?: string[];
+    items?: AppMenuItemWithRoles[];
+}
 
 const AppMenu = () => {
-    const { layoutConfig } = useContext(LayoutContext);
+    const [userRoles, setUserRoles] = useState<string[]>([]);
 
-    const model: AppMenuItem[] = [
-        // =========================================================
+    useEffect(() => {
+        const user = getUserFromStorage();
+        // Acessa o array 'roles' diretamente do objeto de usuário retornado
+        const roles: string[] = user?.roles || [];
+        setUserRoles(roles);
+    }, []);
+
+    const model: AppMenuItemWithRoles[] = [
         // 1. PAINEL GERAL
-        // =========================================================
         {
             label: 'Painel Geral',
+            roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO'],
             items: [
                 {
                     label: 'Dashboard',
                     icon: 'pi pi-fw pi-home',
-                    to: '/dashboard'
+                    to: '/dashboard',
+                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
                 },
                 {
                     label: 'Meu Perfil',
                     icon: 'pi pi-fw pi-user',
-                    to: '/pages/profile'
+                    to: '/pages/profile',
+                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
                 }
             ]
         },
 
-        // =========================================================
         // 2. SUBMISSÃO E APROVAÇÃO DE PRÉ-PROJECTOS
-        // =========================================================
         {
             label: 'Pré-Projectos',
             icon: 'pi pi-fw pi-file',
+            roles: ['ADMIN', 'ESTUDANTE', 'AVALIADOR_PRE_PROJECTO', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO'],
             items: [
                 {
                     label: 'Submeter Pré-Projecto',
                     icon: 'pi pi-fw pi-upload',
-                    to: '/pre-projectos/submeter'
+                    to: '/pre-projectos/submeter',
+                    roles: ['ADMIN', 'ESTUDANTE']
                 },
                 {
                     label: 'Gestão de Pré-Projectos',
                     icon: 'pi pi-fw pi-list',
-                    to: '/pre-projectos/gestao'
+                    to: '/pre-projectos/gestao',
+                    roles: ['ADMIN', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
                 },
                 {
                     label: 'Avaliação de Pré-Projecto',
                     icon: 'pi pi-fw pi-check-square',
-                    to: '/pre-projectos/avaliacao'
+                    to: '/pre-projectos/avaliacao',
+                    roles: ['ADMIN', 'AVALIADOR_PRE_PROJECTO']
                 }
             ]
         },
 
-        // =========================================================
         // 3. CADERNO DE ORIENTAÇÕES
-        // =========================================================
         {
             label: 'Caderno de Orientações',
             icon: 'pi pi-fw pi-book',
+            roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'COORDENADOR_TCC'],
             items: [
                 {
                     label: 'Painel do Caderno',
                     icon: 'pi pi-fw pi-chart-bar',
-                    to: '/orientacoes/dashboard'
+                    to: '/orientacoes/dashboard',
+                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'COORDENADOR_TCC']
                 },
                 {
                     label: 'Sessões e Tarefas',
                     icon: 'pi pi-fw pi-calendar',
-                    to: '/orientacoes/sessoes'
+                    to: '/orientacoes/sessoes',
+                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR']
                 }
             ]
         },
 
-        // =========================================================
         // 4. ARTIGO CIENTÍFICO
-        // =========================================================
         {
             label: 'Artigo Científico',
             icon: 'pi pi-fw pi-file-edit',
+            roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR'],
             items: [
                 {
                     label: 'Editor IMRaD',
                     icon: 'pi pi-fw pi-pencil',
-                    to: '/artigo/editor'
+                    to: '/artigo/editor',
+                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR']
                 }
             ]
         },
 
-        // =========================================================
         // 5. CALENDÁRIO DE DEFESAS
-        // =========================================================
         {
             label: 'Defesas Públicas',
             icon: 'pi pi-fw pi-calendar',
+            roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC'],
             items: [
                 {
                     label: 'Agendar Defesa',
                     icon: 'pi pi-fw pi-plus-circle',
-                    to: '/defesas/agendar'
+                    to: '/defesas/agendar',
+                    roles: ['ADMIN', 'COORDENADOR_TCC']
                 },
                 {
                     label: 'Calendário de Defesas',
                     icon: 'pi pi-fw pi-calendar-times',
-                    to: '/defesas/calendario'
+                    to: '/defesas/calendario',
+                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC']
                 }
             ]
         },
 
-        // =========================================================
         // 6. FICHA DE AVALIAÇÃO E ACTA
-        // =========================================================
         {
             label: 'Avaliação e Acta',
             icon: 'pi pi-fw pi-file-check',
+            roles: ['ADMIN', 'PRESIDENTE_JURI', 'OPONENTE', 'ORIENTADOR', 'COORDENADOR_TCC'],
             items: [
                 {
                     label: 'Ficha de Avaliação',
                     icon: 'pi pi-fw pi-check-square',
-                    to: '/avaliacao/ficha'
+                    to: '/avaliacao/ficha',
+                    roles: ['ADMIN', 'PRESIDENTE_JURI', 'OPONENTE', 'ORIENTADOR']
                 },
                 {
                     label: 'Acta de Defesa',
                     icon: 'pi pi-fw pi-file-pdf',
-                    to: '/avaliacao/acta'
+                    to: '/avaliacao/acta',
+                    roles: ['ADMIN', 'PRESIDENTE_JURI', 'COORDENADOR_TCC']
                 }
             ]
         }
     ];
 
+    // Função de filtro por role
+    const filterMenuByRole = (items: AppMenuItemWithRoles[]): AppMenuItemWithRoles[] => {
+        return items
+            .filter((item) => {
+                if (!item.roles) return true;
+                return item.roles.some((role) => userRoles.includes(role));
+            })
+            .map((item) => {
+                if (item.items) {
+                    return {
+                        ...item,
+                        items: filterMenuByRole(item.items)
+                    };
+                }
+                return item;
+            })
+            .filter((item) => !item.items || item.items.length > 0);
+    };
+
+    const filteredModel = filterMenuByRole(model);
+
     return (
         <MenuProvider>
             <ul className="layout-menu">
-                {model.map((item, i) => {
+                {filteredModel.map((item, i) => {
                     return !item?.seperator ? (
                         <AppMenuitem
                             item={item}

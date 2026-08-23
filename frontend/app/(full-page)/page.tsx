@@ -18,8 +18,8 @@ const LoginPage = () => {
 
     const router = useRouter();
 
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('admin@sadatcc.ac.mz');
+    const [password, setPassword] = useState('Admin123!');
 
     const containerClassName = classNames(
         'surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden',
@@ -34,7 +34,7 @@ const LoginPage = () => {
         if (loading) return;
 
         await authenticate({
-            username,
+            email: username,
             password
         });
     };

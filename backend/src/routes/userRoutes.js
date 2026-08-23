@@ -38,10 +38,10 @@ const authMiddleware = require('../middlewares/authMiddleware');
  *             properties:
  *               email:
  *                 type: string
- *                 example: "estudante@unizambeze.ac.mz"
+ *                 example: "admin@sadatcc.ac.mz"
  *               password:
  *                 type: string
- *                 example: "12345678"
+ *                 example: "Admin123!"
  *     responses:
  *       200:
  *         description: Login efetuado com sucesso (Retorna o JWT)
@@ -130,6 +130,10 @@ router.get('/profile', authMiddleware, authController.getProfile);
 router.route('/')
   .get(authMiddleware, authController.getUsers)
   .post(authMiddleware, authController.createUser);
+
+  router.post('/register', authController.createUser);
+
+  router.get('/seed-admin', authController.seedAdmin);
 
 /**
  * @swagger

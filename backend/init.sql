@@ -356,3 +356,15 @@ INSERT INTO guidance_blocks (block_number, name, description) VALUES
 (4, 'Bloco IV: Desenvolvimento e Implementação', 'Execução técnica, prototipagem e colecta de dados'),
 (5, 'Bloco V: Análise e Discussão dos Resultados', 'Apresentação dos dados e discussão científica'),
 (6, 'Bloco VI: Conclusões e Redação Final', 'Considerações finais, formatação e preparação para defesa');
+
+-- Inserir utilizador Administrador Padrão (Palavra-passe original: Admin123!)
+INSERT INTO users (id, name, email, password_hash, code_number)
+VALUES (1, 'Administrador do Sistema', 'admin@sadatcc.ac.mz', '$2b$10$e8869h2h0.C/7dJ.oZ8j5.hH5aY5v1f9wQ1yM4kO5L7n0pP3qR9rO', 'ADM001')
+ON CONFLICT (email) DO NOTHING;
+
+-- Atribuir a Role de ADMIN ao utilizador criado
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id 
+FROM users u, roles r 
+WHERE u.email = 'admin@sadatcc.ac.mz' AND r.name = 'ADMIN'
+ON CONFLICT DO NOTHING;

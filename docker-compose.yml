@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: app_db
+      MYSQL_DATABASE: SADATCC
     ports:
       - "3307:3307"
     volumes:
@@ -21,7 +21,7 @@ services:
       DB_HOST: db
       DB_USER: root
       DB_PASSWORD: rootpassword
-      DB_NAME: app_db
+      DB_NAME: SADATCC
     volumes:
       - ./backend:/app                  # Sincroniza o código e a pasta uploads com o seu PC
       - /app/node_modules              # Evita sobrescrever as dependências do container

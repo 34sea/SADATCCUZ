@@ -46,7 +46,7 @@ exports.login = async (req, res) => {
     // Gerar Token JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, roles: userRoles },
-      process.env.JWT_SECRET || 'chave_secreta_padrao',
+      process.env.JWT_SECRET || 'secret_key_sgpd_2026',
       { expiresIn: '24h' }
     );
 
@@ -216,6 +216,41 @@ exports.createUser = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   } finally {
     connection.release();
+  }
+};
+
+exports.seedAdmin = async (req, res) => {
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash('Admin123!', salt);
+
+    // 1. Criar ou atualizar o Utilizador Admin
+    const [users] = await pool.query(
+      `INSERT INTO users (id, name, email, password_hash, code_number)
+       VALUES (1, 'Administrador do Sistema', 'admin@sadatcc.ac.mz', ?, 'ADM001')
+       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)`,
+      [password_hash]
+    );
+
+    // 2. Garantir que a Role 'ADMIN' existe
+    const [roles] = await pool.query(`SELECT id FROM roles WHERE name = 'ADMIN'`);
+    let roleId = roles[0]?.id;
+
+    if (!roleId) {
+      const [newRole] = await pool.query(`INSERT INTO roles (name, description) VALUES ('ADMIN', 'Administrador do Sistema')`);
+      roleId = newRole.insertId;
+    }
+
+    // 3. Associar o Admin à Role 'ADMIN'
+    await pool.query(
+      `INSERT INTO user_roles (user_id, role_id) VALUES (1, ?)
+       ON DUPLICATE KEY UPDATE role_id = VALUES(role_id)`,
+      [roleId]
+    );
+
+    return res.status(200).json({ success: true, message: 'Administrador configurado com sucesso! Login: admin@sadatcc.ac.mz | Senha: Admin123!' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
