@@ -40,7 +40,7 @@ import { getUserFromStorage } from "@/app/api/auth/authService";
 //                             icon: 'pi pi-fw pi-bars',
 //                             to: '/pages/users/clients/list'
 //                         },
-                      
+
 //                     ]
 //                 },
 //                 {
@@ -57,7 +57,7 @@ import { getUserFromStorage } from "@/app/api/auth/authService";
 //                             icon: 'pi pi-fw pi-bars',
 //                             to: '/pages/users/freelancer/list'
 //                         },
-                      
+
 //                     ]
 //                 },
 
@@ -75,7 +75,7 @@ import { getUserFromStorage } from "@/app/api/auth/authService";
 //                             icon: 'pi pi-fw pi-key',
 //                             to: '/pages/config/permissions'
 //                         },
-                      
+
 //                     ]
 //                 },
 //                 {
@@ -127,7 +127,7 @@ import { getUserFromStorage } from "@/app/api/auth/authService";
 //                 // },
 //             ]
 //         },
-        
+
 //     ];
 
 //     return (
@@ -137,7 +137,7 @@ import { getUserFromStorage } from "@/app/api/auth/authService";
 //                     return !item?.seperator ? <AppMenuitem item={item} root={true} index={i} key={item.label} /> : <li className="menu-separator"></li>;
 //                 })}
 
-                
+
 //             </ul>
 //         </MenuProvider>
 //     );
@@ -312,8 +312,13 @@ const AppMenu = () => {
 
     useEffect(() => {
         const user = getUserFromStorage();
-        // Acessa o array 'roles' diretamente do objeto de usuário retornado
-        const roles: string[] = user?.roles || [];
+
+        console.log("DADOS DO STORAGE:", user);
+
+        const roles: string[] = user?.data?.user?.roles || [];
+
+        console.log("ROLES:", roles);
+
         setUserRoles(roles);
     }, []);
 
@@ -326,15 +331,27 @@ const AppMenu = () => {
                 {
                     label: 'Dashboard',
                     icon: 'pi pi-fw pi-home',
-                    to: '/dashboard',
-                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
+                    to: '/dash',
+                    roles: ['ADMIN','AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
                 },
-                {
-                    label: 'Meu Perfil',
-                    icon: 'pi pi-fw pi-user',
-                    to: '/pages/profile',
-                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
-                }
+                  {
+                    label: 'Dashboard',
+                    icon: 'pi pi-fw pi-home',
+                    to: '/dash/student',
+                    roles: ['ESTUDANTE', 'ORIENTADOR', 'AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
+                },
+                 {
+                    label: 'Dashboard',
+                    icon: 'pi pi-fw pi-home',
+                    to: '/dash/prof',
+                    roles: ['ORIENTADOR']
+                },
+                // {
+                //     label: 'Meu Perfil',
+                //     icon: 'pi pi-fw pi-user',
+                //     to: '/pages/profile',
+                //     roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'AVALIADOR_PRE_PROJECTO', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
+                // }
             ]
         },
 
@@ -342,26 +359,26 @@ const AppMenu = () => {
         {
             label: 'Pré-Projectos',
             icon: 'pi pi-fw pi-file',
-            roles: ['ADMIN', 'ESTUDANTE', 'AVALIADOR_PRE_PROJECTO', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO'],
+            roles: ['ADMIN','AVALIADOR_PRE_PROJECTO', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO'],
             items: [
                 {
                     label: 'Submeter Pré-Projecto',
                     icon: 'pi pi-fw pi-upload',
-                    to: '/pre-projectos/submeter',
+                    to: '/pages/preProject/submitPreProject',
                     roles: ['ADMIN', 'ESTUDANTE']
                 },
                 {
                     label: 'Gestão de Pré-Projectos',
                     icon: 'pi pi-fw pi-list',
-                    to: '/pre-projectos/gestao',
+                    to: '/pages/preProject/gestao',
                     roles: ['ADMIN', 'COORDENADOR_TCC', 'CHEFE_DEPARTAMENTO']
                 },
-                {
-                    label: 'Avaliação de Pré-Projecto',
-                    icon: 'pi pi-fw pi-check-square',
-                    to: '/pre-projectos/avaliacao',
-                    roles: ['ADMIN', 'AVALIADOR_PRE_PROJECTO']
-                }
+                // {
+                //     label: 'Avaliação de Pré-Projecto',
+                //     icon: 'pi pi-fw pi-check-square',
+                //     to: 'pages/preProject/projectEvaluation',
+                //     roles: ['ADMIN', 'AVALIADOR_PRE_PROJECTO']
+                // }
             ]
         },
 
@@ -372,17 +389,17 @@ const AppMenu = () => {
             roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'COORDENADOR_TCC'],
             items: [
                 {
-                    label: 'Painel do Caderno',
+                    label: 'Sessões',
                     icon: 'pi pi-fw pi-chart-bar',
-                    to: '/orientacoes/dashboard',
+                    to: '/pages/book/evaluation',
                     roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'COORDENADOR_TCC']
                 },
-                {
-                    label: 'Sessões e Tarefas',
-                    icon: 'pi pi-fw pi-calendar',
-                    to: '/orientacoes/sessoes',
-                    roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR']
-                }
+                // {
+                //     label: 'Sessões e Tarefas',
+                //     icon: 'pi pi-fw pi-calendar',
+                //     to: '/orientacoes/sessoes',
+                //     roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR']
+                // }
             ]
         },
 
@@ -395,7 +412,7 @@ const AppMenu = () => {
                 {
                     label: 'Editor IMRaD',
                     icon: 'pi pi-fw pi-pencil',
-                    to: '/artigo/editor',
+                    to: '/pages/article',
                     roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR']
                 }
             ]
@@ -410,13 +427,13 @@ const AppMenu = () => {
                 {
                     label: 'Agendar Defesa',
                     icon: 'pi pi-fw pi-plus-circle',
-                    to: '/defesas/agendar',
+                    to: '/pages/defense/schedule',
                     roles: ['ADMIN', 'COORDENADOR_TCC']
                 },
                 {
                     label: 'Calendário de Defesas',
                     icon: 'pi pi-fw pi-calendar-times',
-                    to: '/defesas/calendario',
+                    to: '/pages/defense/calendar',
                     roles: ['ADMIN', 'ESTUDANTE', 'ORIENTADOR', 'PRESIDENTE_JURI', 'OPONENTE', 'COORDENADOR_TCC']
                 }
             ]
@@ -431,13 +448,13 @@ const AppMenu = () => {
                 {
                     label: 'Ficha de Avaliação',
                     icon: 'pi pi-fw pi-check-square',
-                    to: '/avaliacao/ficha',
+                    to: '/pages/minutes/form',
                     roles: ['ADMIN', 'PRESIDENTE_JURI', 'OPONENTE', 'ORIENTADOR']
                 },
                 {
                     label: 'Acta de Defesa',
                     icon: 'pi pi-fw pi-file-pdf',
-                    to: '/avaliacao/acta',
+                    to: '/pages/minutes',
                     roles: ['ADMIN', 'PRESIDENTE_JURI', 'COORDENADOR_TCC']
                 }
             ]
