@@ -13,26 +13,21 @@ import { LayoutContext } from '../../layout/context/layoutcontext';
 import { useAuth } from '../hooks/auth/useAuth';
 
 const LoginPage = () => {
-    const { authenticate, loading, error } = useAuth();
-    const { layoutConfig } = useContext(LayoutContext);
-
-    const router = useRouter();
-
-    const [username, setUsername] = useState('admin@sadatcc.ac.mz');
-    const [password, setPassword] = useState('Admin123!');
-
-    const containerClassName = classNames(
+        const { layoutConfig } = useContext(LayoutContext);
+        const containerClassName = classNames(
         'surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden',
         {
             'p-input-filled': layoutConfig.inputStyle === 'filled'
         }
     );
 
+    const { authenticate, loading, error } = useAuth();
+    const router = useRouter();
+    const [username, setUsername] = useState('admin@sadatcc.ac.mz');
+    const [password, setPassword] = useState('Admin123!');
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-
         if (loading) return;
-
         await authenticate({
             email: username,
             password
