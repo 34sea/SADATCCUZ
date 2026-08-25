@@ -209,6 +209,129 @@ router.route('/:id')
   .put(authMiddleware, authController.updateUser)
   .delete(authMiddleware, authController.deleteUser);
 
+// // ==========================================
+// // 3. ROLES (PERFIS)
+// // ==========================================
+
+// /**
+//  * @swagger
+//  * /api/users/roles/all:
+//  *   get:
+//  *     summary: Listar todas as roles do sistema
+//  *     tags: [Roles (Perfis)]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     responses:
+//  *       200:
+//  *         description: Lista de roles
+//  *   post:
+//  *     summary: Criar nova role
+//  *     tags: [Roles (Perfis)]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - name
+//  *             properties:
+//  *               name:
+//  *                 type: string
+//  *                 example: "SUPERVISOR_PEDAGOGICO"
+//  *               description:
+//  *                 type: string
+//  *                 example: "Acompanha processos pedagógicos"
+//  *     responses:
+//  *       201:
+//  *         description: Role criada
+//  */
+// router.route('/roles/all')
+//   .get(authMiddleware, authController.getRoles)
+//   .post(authMiddleware, authController.createRole);
+
+// // ==========================================
+// // 4. PERMISSÕES
+// // ==========================================
+
+// /**
+//  * @swagger
+//  * /api/users/permissions/all:
+//  *   get:
+//  *     summary: Listar todas as permissões
+//  *     tags: [Permissões]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     responses:
+//  *       200:
+//  *         description: Lista de permissões
+//  *   post:
+//  *     summary: Criar nova permissão
+//  *     tags: [Permissões]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - name
+//  *             properties:
+//  *               name:
+//  *                 type: string
+//  *                 example: "APPROVE_PRE_PROJECT"
+//  *               description:
+//  *                 type: string
+//  *                 example: "Permissão para aprovar pré-projecto"
+//  *     responses:
+//  *       201:
+//  *         description: Permissão criada
+//  */
+// router.route('/permissions/all')
+//   .get(authMiddleware, authController.getPermissions)
+//   .post(authMiddleware, authController.createPermission);
+
+// /**
+//  * @swagger
+//  * /api/users/roles/{role_id}/permissions:
+//  *   put:
+//  *     summary: Atribuir ou atualizar lista de permissões de uma role
+//  *     tags: [Permissões]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: role_id
+//  *         required: true
+//  *         schema:
+//  *           type: integer
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - permission_ids
+//  *             properties:
+//  *               permission_ids:
+//  *                 type: array
+//  *                 items:
+//  *                   type: integer
+//  *                 example: [1, 2, 3]
+//  *     responses:
+//  *       200:
+//  *         description: Permissões sincronizadas com sucesso
+//  */
+// router.put('/roles/:role_id/permissions', authMiddleware, authController.assignPermissionsToRole);
+
+// module.exports = router;
+
+
 // ==========================================
 // 3. ROLES (PERFIS)
 // ==========================================
@@ -223,7 +346,11 @@ router.route('/:id')
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de roles
+ *         description: Lista de roles recuperada com sucesso
+ *       401:
+ *         description: Não autorizado (Token ausente ou inválido)
+ *       500:
+ *         description: Erro interno do servidor
  *   post:
  *     summary: Criar nova role
  *     tags: [Roles (Perfis)]
@@ -246,11 +373,82 @@ router.route('/:id')
  *                 example: "Acompanha processos pedagógicos"
  *     responses:
  *       201:
- *         description: Role criada
+ *         description: Role criada com sucesso
+ *       400:
+ *         description: Dados de entrada inválidos ou nome já existente
+ *       401:
+ *         description: Não autorizado
+ *       500:
+ *         description: Erro interno do servidor
  */
 router.route('/roles/all')
   .get(authMiddleware, authController.getRoles)
   .post(authMiddleware, authController.createRole);
+
+/**
+ * @swagger
+ * /api/users/roles/{id}:
+ *   put:
+ *     summary: Atualizar dados de uma role existente
+ *     tags: [Roles (Perfis)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID único da role
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "SUPERVISOR_ACADEMICO"
+ *               description:
+ *                 type: string
+ *                 example: "Gestão e acompanhamento de processos pedagógicos"
+ *     responses:
+ *       200:
+ *         description: Role atualizada com sucesso
+ *       400:
+ *         description: Erro de validação nos dados fornecidos
+ *       404:
+ *         description: Role não encontrada
+ *       500:
+ *         description: Erro interno do servidor
+ *   delete:
+ *     summary: Eliminar uma role do sistema
+ *     tags: [Roles (Perfis)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID único da role
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       200:
+ *         description: Role eliminada com sucesso
+ *       404:
+ *         description: Role não encontrada
+ *       409:
+ *         description: Não é possível eliminar uma role vinculada a utilizadores ativos
+ *       500:
+ *         description: Erro interno do servidor
+ */
+router.route('/roles/:id')
+  .put(authMiddleware, authController.updateRole)
+  .delete(authMiddleware, authController.deleteRole);
 
 // ==========================================
 // 4. PERMISSÕES
@@ -266,7 +464,11 @@ router.route('/roles/all')
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de permissões
+ *         description: Lista de permissões recuperada com sucesso
+ *       401:
+ *         description: Não autorizado
+ *       500:
+ *         description: Erro interno do servidor
  *   post:
  *     summary: Criar nova permissão
  *     tags: [Permissões]
@@ -289,7 +491,11 @@ router.route('/roles/all')
  *                 example: "Permissão para aprovar pré-projecto"
  *     responses:
  *       201:
- *         description: Permissão criada
+ *         description: Permissão criada com sucesso
+ *       400:
+ *         description: Dados de entrada inválidos
+ *       500:
+ *         description: Erro interno do servidor
  */
 router.route('/permissions/all')
   .get(authMiddleware, authController.getPermissions)
@@ -307,8 +513,10 @@ router.route('/permissions/all')
  *       - in: path
  *         name: role_id
  *         required: true
+ *         description: ID da role a associar as permissões
  *         schema:
  *           type: integer
+ *           example: 2
  *     requestBody:
  *       required: true
  *       content:
@@ -326,7 +534,77 @@ router.route('/permissions/all')
  *     responses:
  *       200:
  *         description: Permissões sincronizadas com sucesso
+ *       400:
+ *         description: Lista de IDs de permissão inválida
+ *       404:
+ *         description: Role não encontrada
+ *       500:
+ *         description: Erro interno do servidor
  */
 router.put('/roles/:role_id/permissions', authMiddleware, authController.assignPermissionsToRole);
-
+/**
+ * @swagger
+ * /api/users/permissions/{id}:
+ *   put:
+ *     summary: Atualizar dados de uma permissão existente
+ *     tags: [Permissões]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID único da permissão
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "APPROVE_FINAL_PROJECT"
+ *               description:
+ *                 type: string
+ *                 example: "Permissão para aprovar projeto final"
+ *     responses:
+ *       200:
+ *         description: Permissão atualizada com sucesso
+ *       400:
+ *         description: Dados de entrada inválidos
+ *       404:
+ *         description: Permissão não encontrada
+ *       500:
+ *         description: Erro interno do servidor
+ *   delete:
+ *     summary: Eliminar uma permissão do sistema
+ *     tags: [Permissões]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID único da permissão
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       200:
+ *         description: Permissão eliminada com sucesso
+ *       404:
+ *         description: Permissão não encontrada
+ *       500:
+ *         description: Erro interno do servidor
+ */
+router.route('/permissions/:id')
+  .put(authMiddleware, authController.updatePermission)
+  .delete(authMiddleware, authController.deletePermission);
+  
 module.exports = router;

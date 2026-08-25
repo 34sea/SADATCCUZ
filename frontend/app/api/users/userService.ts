@@ -191,6 +191,54 @@ export const deleteUser = async (
 // GET ROLES
 // =====================================================
 
+// export const getRoles = async (): Promise<Role[]> => {
+
+//     const response = await api.get(
+//         pathUrls.roles,
+//         {
+//             headers: getAuthHeaders()
+//         }
+//     );
+
+//     return response.data.data;
+// };
+
+// =====================================================
+// ROLE TYPES
+// =====================================================
+
+// export interface Role {
+//     id: number;
+//     name: string;
+//     description?: string | null;
+//     permissions?: string[];
+// }
+
+export interface CreateRoleData {
+    name: string;
+    description?: string;
+}
+
+export interface UpdateRoleData {
+    name: string;
+    description?: string;
+}
+
+export interface Permission {
+    id: number;
+    name: string;
+    description?: string | null;
+}
+
+export interface AssignPermissionsData {
+    permission_ids: number[];
+}
+
+
+// =====================================================
+// GET ROLES
+// =====================================================
+
 export const getRoles = async (): Promise<Role[]> => {
 
     const response = await api.get(
@@ -201,4 +249,209 @@ export const getRoles = async (): Promise<Role[]> => {
     );
 
     return response.data.data;
+};
+
+
+// =====================================================
+// CREATE ROLE
+// =====================================================
+
+export const createRole = async (
+    data: CreateRoleData
+): Promise<Role> => {
+
+    const response = await api.post(
+        pathUrls.roles,
+        data,
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data.data;
+};
+
+
+// =====================================================
+// UPDATE ROLE
+// =====================================================
+
+export const updateRole = async (
+    id: number,
+    data: UpdateRoleData
+): Promise<Role> => {
+
+    const response = await api.put(
+        `${pathUrls.roles2}/${id}`,
+        data,
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data.data;
+};
+
+
+// =====================================================
+// DELETE ROLE
+// =====================================================
+
+export const deleteRole = async (
+    id: number
+) => {
+
+    const response = await api.delete(
+        `${pathUrls.roles2}/${id}`,
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data;
+};
+
+
+// =====================================================
+// GET PERMISSIONS
+// =====================================================
+
+// export const getPermissions = async (): Promise<Permission[]> => {
+
+//     const response = await api.get(
+//         pathUrls.permition,
+//         {
+//             headers: getAuthHeaders()
+//         }
+//     );
+
+//     return response.data.data;
+// };
+
+
+// // =====================================================
+// // ASSIGN PERMISSIONS TO ROLE
+// // =====================================================
+
+// export const assignPermissionsToRole = async (
+//     roleId: number,
+//     permissionIds: number[]
+// ) => {
+
+//     const response = await api.put(
+//         `${pathUrls.roles2}/${roleId}/permissions`,
+//         {
+//             permission_ids: permissionIds
+//         },
+//         {
+//             headers: getAuthHeaders()
+//         }
+//     );
+
+//     return response.data;
+// };
+
+// =====================================================
+// GET PERMISSIONS
+// =====================================================
+
+export const getPermissions = async (): Promise<Permission[]> => {
+
+    const response = await api.get(
+        pathUrls.permition,
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data.data;
+};
+
+
+// =====================================================
+// CREATE PERMISSION
+// =====================================================
+
+export const createPermission = async (
+    data: {
+        name: string;
+        description?: string;
+    }
+): Promise<Permission> => {
+
+    const response = await api.post(
+        pathUrls.permition,
+        data,
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data.data;
+};
+
+
+// =====================================================
+// UPDATE PERMISSION
+// =====================================================
+
+export const updatePermission = async (
+    id: number,
+    data: {
+        name: string;
+        description?: string;
+    }
+): Promise<Permission> => {
+
+    const response = await api.put(
+        `${pathUrls.permition2}/${id}`,
+        data,
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data.data;
+};
+
+
+// =====================================================
+// DELETE PERMISSION
+// =====================================================
+
+export const deletePermission = async (
+    id: number
+) => {
+
+    const response = await api.delete(
+        `${pathUrls.permition2}/${id}`,
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data;
+};
+
+
+// =====================================================
+// ASSIGN PERMISSIONS TO ROLE
+// =====================================================
+
+export const assignPermissionsToRole = async (
+    roleId: number,
+    permissionIds: number[]
+) => {
+
+    const response = await api.put(
+        `${pathUrls.roles2}/${roleId}/permissions`,
+        {
+            permission_ids: permissionIds
+        },
+        {
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data;
 };

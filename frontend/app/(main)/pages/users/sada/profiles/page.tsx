@@ -16,8 +16,16 @@ import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
 import {
     getRoles,
-    Role
+    createRole,
+    updateRole,
+    deleteRole,
+    getPermissions,
+    assignPermissionsToRole,
+    Role,
+    Permission
 } from '@/app/api/users/userService';
+
+
 
 
 // =====================================================
@@ -30,13 +38,30 @@ const UsersProfiles = () => {
 
 
     // =====================================================
-    // STATE
+    // DATA
     // =====================================================
 
-    const [roles, setRoles] = useState<Role[]>([]);
+    const [roles, setRoles] =
+        useState<Role[]>([]);
+
+    const [permissions, setPermissions] =
+        useState<Permission[]>([]);
+
+
+    // =====================================================
+    // LOADING
+    // =====================================================
 
     const [loading, setLoading] =
         useState(false);
+
+    const [saving, setSaving] =
+        useState(false);
+
+
+    // =====================================================
+    // ERROR
+    // =====================================================
 
     const [error, setError] =
         useState<string | null>(null);
@@ -72,31 +97,37 @@ const UsersProfiles = () => {
         useState('');
 
     const [selectedPermissions, setSelectedPermissions] =
-        useState<string[]>([]);
+        useState<number[]>([]);
 
 
     // =====================================================
-    // LOAD ROLES
+    // LOAD DATA
     // =====================================================
 
-    const loadRoles = useCallback(async () => {
+    const loadData = useCallback(async () => {
 
         setLoading(true);
-
         setError(null);
 
         try {
 
-            const data = await getRoles();
+            const [
+                rolesData,
+                permissionsData
+            ] = await Promise.all([
+                getRoles(),
+                getPermissions()
+            ]);
 
-            setRoles(data);
+            setRoles(rolesData);
+            setPermissions(permissionsData);
 
         } catch (err: any) {
 
             const message =
                 err?.response?.data?.message ||
                 err?.message ||
-                'Erro ao carregar os perfis.';
+                'Erro ao carregar perfis e permissões.';
 
             setError(message);
 
@@ -121,9 +152,9 @@ const UsersProfiles = () => {
 
     useEffect(() => {
 
-        loadRoles();
+        loadData();
 
-    }, [loadRoles]);
+    }, [loadData]);
 
 
     // =====================================================
@@ -141,19 +172,32 @@ const UsersProfiles = () => {
             return roles;
         }
 
-        return roles.filter(role =>
+        return roles.filter(role => {
 
-            role.name
-                ?.toLowerCase()
-                .includes(value)
+            const nameMatch =
+                role.name
+                    ?.toLowerCase()
+                    .includes(value);
 
-            ||
+            const descriptionMatch =
+                role.description
+                    ?.toLowerCase()
+                    .includes(value);
 
-            role.description
-                ?.toLowerCase()
-                .includes(value)
+            const permissionMatch =
+                role.permissions?.some(
+                    permission =>
+                        permission
+                            .toLowerCase()
+                            .includes(value)
+                );
 
-        );
+            return (
+                nameMatch ||
+                descriptionMatch ||
+                permissionMatch
+            );
+        });
 
     }, [
         roles,
@@ -168,7 +212,6 @@ const UsersProfiles = () => {
     const totalRoles =
         roles.length;
 
-
     const rolesWithPermissions =
         roles.filter(
             role =>
@@ -176,17 +219,8 @@ const UsersProfiles = () => {
                 role.permissions.length > 0
         ).length;
 
-
     const totalPermissions =
-        Array.from(
-            new Set(
-                roles.flatMap(
-                    role =>
-                        role.permissions || []
-                )
-            )
-        ).length;
-
+        permissions.length;
 
     const adminRole =
         roles.find(
@@ -201,22 +235,19 @@ const UsersProfiles = () => {
 
     const permissionOptions = useMemo(() => {
 
-        const permissions =
-            Array.from(
-                new Set(
-                    roles.flatMap(
-                        role =>
-                            role.permissions || []
-                    )
-                )
-            );
-
         return permissions.map(permission => ({
-            label: permission,
-            value: permission
+
+            label:
+                permission.name,
+
+            value:
+                permission.id
+
         }));
 
-    }, [roles]);
+    }, [
+        permissions
+    ]);
 
 
     // =====================================================
@@ -241,7 +272,9 @@ const UsersProfiles = () => {
     // OPEN EDIT
     // =====================================================
 
-    const openEditDialog = (role: Role) => {
+    const openEditDialog = (
+        role: Role
+    ) => {
 
         setEditingRole(role);
 
@@ -253,11 +286,48 @@ const UsersProfiles = () => {
             role.description || ''
         );
 
+
+        // Converter nomes das permissões
+        // para IDs
+
+        const permissionIds =
+            permissions
+                .filter(permission =>
+                    role.permissions?.includes(
+                        permission.name
+                    )
+                )
+                .map(permission =>
+                    permission.id
+                );
+
         setSelectedPermissions(
-            role.permissions || []
+            permissionIds
         );
 
         setDialogVisible(true);
+    };
+
+
+    // =====================================================
+    // CLOSE DIALOG
+    // =====================================================
+
+    const closeDialog = () => {
+
+        if (saving) {
+            return;
+        }
+
+        setDialogVisible(false);
+
+        setEditingRole(null);
+
+        setName('');
+
+        setDescription('');
+
+        setSelectedPermissions([]);
     };
 
 
@@ -267,12 +337,17 @@ const UsersProfiles = () => {
 
     const handleSave = async () => {
 
+        // -------------------------------------------------
+        // VALIDATION
+        // -------------------------------------------------
+
         if (!name.trim()) {
 
             toast.current?.show({
                 severity: 'warn',
                 summary: 'Atenção',
-                detail: 'Informe o nome do perfil.',
+                detail:
+                    'Informe o nome do perfil.',
                 life: 3000
             });
 
@@ -280,28 +355,114 @@ const UsersProfiles = () => {
         }
 
 
-        /*
-         * Neste momento o teu userService só possui
-         * getRoles().
-         *
-         * Quando adicionarmos:
-         *
-         * createRole()
-         * updateRole()
-         * deleteRole()
-         *
-         * colocaremos aqui a chamada à API.
-         */
+        setSaving(true);
 
-        toast.current?.show({
-            severity: 'info',
-            summary: 'Perfil',
-            detail:
-                'A API de criação/edição de perfis ainda não foi configurada.',
-            life: 4000
-        });
 
-        setDialogVisible(false);
+        try {
+
+            // =================================================
+            // CREATE
+            // =================================================
+
+            if (!editingRole) {
+
+                const createdRole =
+                    await createRole({
+
+                        name:
+                            name.trim(),
+
+                        description:
+                            description.trim() ||
+                            undefined
+
+                    });
+
+
+                // Atribuir permissões
+                if (
+                    selectedPermissions.length > 0
+                ) {
+
+                    await assignPermissionsToRole(
+                        createdRole.id,
+                        selectedPermissions
+                    );
+
+                }
+
+
+                toast.current?.show({
+                    severity: 'success',
+                    summary: 'Sucesso',
+                    detail:
+                        'Perfil criado com sucesso.',
+                    life: 3000
+                });
+
+            }
+
+            // =================================================
+            // UPDATE
+            // =================================================
+
+            else {
+
+                await updateRole(
+                    editingRole.id,
+                    {
+                        name:
+                            name.trim(),
+
+                        description:
+                            description.trim()
+                    }
+                );
+
+
+                // Actualizar permissões
+                await assignPermissionsToRole(
+                    editingRole.id,
+                    selectedPermissions
+                );
+
+
+                toast.current?.show({
+                    severity: 'success',
+                    summary: 'Sucesso',
+                    detail:
+                        'Perfil actualizado com sucesso.',
+                    life: 3000
+                });
+            }
+
+
+            // =================================================
+            // RELOAD
+            // =================================================
+
+            await loadData();
+
+            closeDialog();
+
+        } catch (err: any) {
+
+            const message =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Não foi possível guardar o perfil.';
+
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Erro',
+                detail: message,
+                life: 4000
+            });
+
+        } finally {
+
+            setSaving(false);
+        }
     };
 
 
@@ -309,15 +470,20 @@ const UsersProfiles = () => {
     // DELETE
     // =====================================================
 
-    const handleDelete = (role: Role) => {
+    const handleDelete = (
+        role: Role
+    ) => {
 
-        if (
-            role.name?.toUpperCase() === 'ADMIN'
-        ) {
+        const isAdmin =
+            role.name?.toUpperCase() === 'ADMIN';
+
+
+        if (isAdmin) {
 
             toast.current?.show({
                 severity: 'warn',
-                summary: 'Operação não permitida',
+                summary:
+                    'Operação não permitida',
                 detail:
                     'O perfil ADMIN não deve ser eliminado.',
                 life: 4000
@@ -349,22 +515,45 @@ const UsersProfiles = () => {
 
             accept: async () => {
 
-                /*
-                 * Aqui será colocado:
-                 *
-                 * await deleteRole(role.id)
-                 *
-                 * quando adicionarmos esse método
-                 * ao roleService.
-                 */
+                try {
 
-                toast.current?.show({
-                    severity: 'info',
-                    summary: 'Perfil',
-                    detail:
-                        'A API de eliminação de perfis ainda não foi configurada.',
-                    life: 4000
-                });
+                    setLoading(true);
+
+
+                    await deleteRole(
+                        role.id
+                    );
+
+
+                    toast.current?.show({
+                        severity: 'success',
+                        summary: 'Sucesso',
+                        detail:
+                            'Perfil eliminado com sucesso.',
+                        life: 3000
+                    });
+
+
+                    await loadData();
+
+                } catch (err: any) {
+
+                    const message =
+                        err?.response?.data?.message ||
+                        err?.message ||
+                        'Não foi possível eliminar o perfil.';
+
+                    toast.current?.show({
+                        severity: 'error',
+                        summary: 'Erro',
+                        detail: message,
+                        life: 4000
+                    });
+
+                } finally {
+
+                    setLoading(false);
+                }
             }
         });
     };
@@ -384,7 +573,9 @@ const UsersProfiles = () => {
     // ROLE TEMPLATE
     // =====================================================
 
-    const roleTemplate = (role: Role) => {
+    const roleTemplate = (
+        role: Role
+    ) => {
 
         const roleName =
             role.name?.toUpperCase();
@@ -449,11 +640,13 @@ const UsersProfiles = () => {
         role: Role
     ) => {
 
-        const permissions =
+        const rolePermissions =
             role.permissions || [];
 
 
-        if (permissions.length === 0) {
+        if (
+            rolePermissions.length === 0
+        ) {
 
             return (
                 <span className="text-500">
@@ -470,13 +663,13 @@ const UsersProfiles = () => {
                 gap-1
             ">
 
-                {permissions.map(
+                {rolePermissions.map(
                     permission => (
 
                         <Tag
                             key={permission}
                             value={permission}
-                            // severity="secondary"
+                            severity="info"
                         />
 
                     )
@@ -556,6 +749,7 @@ const UsersProfiles = () => {
                     rounded
                     text
                     severity="danger"
+                    disabled={isAdmin}
                     tooltip={
                         isAdmin
                             ? 'ADMIN não pode ser eliminado'
@@ -564,7 +758,6 @@ const UsersProfiles = () => {
                     tooltipOptions={{
                         position: 'top'
                     }}
-                    disabled={isAdmin}
                     onClick={() =>
                         handleDelete(role)
                     }
@@ -588,9 +781,9 @@ const UsersProfiles = () => {
             <ConfirmDialog />
 
 
-            {/* =====================================================
+            {/* =================================================
                 HEADER
-            ===================================================== */}
+            ================================================= */}
 
             <div className="col-12">
 
@@ -612,7 +805,6 @@ const UsersProfiles = () => {
                         ">
                             Funções e Perfis
                         </h2>
-
 
                         <p className="
                             text-600
@@ -639,9 +831,9 @@ const UsersProfiles = () => {
             </div>
 
 
-            {/* =====================================================
-                CARDS
-            ===================================================== */}
+            {/* =================================================
+                STATISTICS
+            ================================================= */}
 
             <div className="
                 col-12
@@ -655,67 +847,29 @@ const UsersProfiles = () => {
                     h-full
                 ">
 
-                    <div className="
-                        flex
-                        justify-content-between
-                        align-items-start
+                    <span className="
+                        block
+                        text-500
+                        font-medium
+                        mb-2
                     ">
+                        Total de perfis
+                    </span>
 
-                        <div>
-
-                            <span className="
-                                block
-                                text-500
-                                font-medium
-                                mb-2
-                            ">
-                                Total de perfis
-                            </span>
-
-
-                            <div className="
-                                text-900
-                                font-medium
-                                text-2xl
-                            ">
-                                {totalRoles}
-                            </div>
-
-
-                            <span className="
-                                text-500
-                                text-sm
-                            ">
-                                Perfis registados
-                            </span>
-
-                        </div>
-
-
-                        <div
-                            className="
-                                flex
-                                align-items-center
-                                justify-content-center
-                                bg-blue-100
-                                border-round
-                            "
-                            style={{
-                                width: '2.5rem',
-                                height: '2.5rem'
-                            }}
-                        >
-
-                            <i className="
-                                pi
-                                pi-shield
-                                text-blue-500
-                                text-xl
-                            " />
-
-                        </div>
-
+                    <div className="
+                        text-900
+                        font-medium
+                        text-2xl
+                    ">
+                        {totalRoles}
                     </div>
+
+                    <span className="
+                        text-500
+                        text-sm
+                    ">
+                        Perfis registados
+                    </span>
 
                 </div>
 
@@ -734,67 +888,29 @@ const UsersProfiles = () => {
                     h-full
                 ">
 
-                    <div className="
-                        flex
-                        justify-content-between
-                        align-items-start
+                    <span className="
+                        block
+                        text-500
+                        font-medium
+                        mb-2
                     ">
+                        Administrador
+                    </span>
 
-                        <div>
-
-                            <span className="
-                                block
-                                text-500
-                                font-medium
-                                mb-2
-                            ">
-                                Administrador
-                            </span>
-
-
-                            <div className="
-                                text-900
-                                font-medium
-                                text-2xl
-                            ">
-                                {adminRole ? 1 : 0}
-                            </div>
-
-
-                            <span className="
-                                text-500
-                                text-sm
-                            ">
-                                Perfil ADMIN
-                            </span>
-
-                        </div>
-
-
-                        <div
-                            className="
-                                flex
-                                align-items-center
-                                justify-content-center
-                                bg-orange-100
-                                border-round
-                            "
-                            style={{
-                                width: '2.5rem',
-                                height: '2.5rem'
-                            }}
-                        >
-
-                            <i className="
-                                pi
-                                pi-lock
-                                text-orange-500
-                                text-xl
-                            " />
-
-                        </div>
-
+                    <div className="
+                        text-900
+                        font-medium
+                        text-2xl
+                    ">
+                        {adminRole ? 1 : 0}
                     </div>
+
+                    <span className="
+                        text-500
+                        text-sm
+                    ">
+                        Perfil ADMIN
+                    </span>
 
                 </div>
 
@@ -813,69 +929,29 @@ const UsersProfiles = () => {
                     h-full
                 ">
 
-                    <div className="
-                        flex
-                        justify-content-between
-                        align-items-start
+                    <span className="
+                        block
+                        text-500
+                        font-medium
+                        mb-2
                     ">
+                        Perfis configurados
+                    </span>
 
-                        <div>
-
-                            <span className="
-                                block
-                                text-500
-                                font-medium
-                                mb-2
-                            ">
-                                Perfis configurados
-                            </span>
-
-
-                            <div className="
-                                text-900
-                                font-medium
-                                text-2xl
-                            ">
-                                {
-                                    rolesWithPermissions
-                                }
-                            </div>
-
-
-                            <span className="
-                                text-500
-                                text-sm
-                            ">
-                                Com permissões atribuídas
-                            </span>
-
-                        </div>
-
-
-                        <div
-                            className="
-                                flex
-                                align-items-center
-                                justify-content-center
-                                bg-green-100
-                                border-round
-                            "
-                            style={{
-                                width: '2.5rem',
-                                height: '2.5rem'
-                            }}
-                        >
-
-                            <i className="
-                                pi
-                                pi-check-circle
-                                text-green-500
-                                text-xl
-                            " />
-
-                        </div>
-
+                    <div className="
+                        text-900
+                        font-medium
+                        text-2xl
+                    ">
+                        {rolesWithPermissions}
                     </div>
+
+                    <span className="
+                        text-500
+                        text-sm
+                    ">
+                        Com permissões
+                    </span>
 
                 </div>
 
@@ -894,123 +970,48 @@ const UsersProfiles = () => {
                     h-full
                 ">
 
-                    <div className="
-                        flex
-                        justify-content-between
-                        align-items-start
+                    <span className="
+                        block
+                        text-500
+                        font-medium
+                        mb-2
                     ">
+                        Permissões
+                    </span>
 
-                        <div>
-
-                            <span className="
-                                block
-                                text-500
-                                font-medium
-                                mb-2
-                            ">
-                                Permissões
-                            </span>
-
-
-                            <div className="
-                                text-900
-                                font-medium
-                                text-2xl
-                            ">
-                                {totalPermissions}
-                            </div>
-
-
-                            <span className="
-                                text-500
-                                text-sm
-                            ">
-                                Permissões utilizadas
-                            </span>
-
-                        </div>
-
-
-                        <div
-                            className="
-                                flex
-                                align-items-center
-                                justify-content-center
-                                bg-purple-100
-                                border-round
-                            "
-                            style={{
-                                width: '2.5rem',
-                                height: '2.5rem'
-                            }}
-                        >
-
-                            <i className="
-                                pi
-                                pi-key
-                                text-purple-500
-                                text-xl
-                            " />
-
-                        </div>
-
+                    <div className="
+                        text-900
+                        font-medium
+                        text-2xl
+                    ">
+                        {totalPermissions}
                     </div>
+
+                    <span className="
+                        text-500
+                        text-sm
+                    ">
+                        Disponíveis no sistema
+                    </span>
 
                 </div>
 
             </div>
 
 
-            {/* =====================================================
+            {/* =================================================
                 FILTER
-            ===================================================== */}
+            ================================================= */}
 
             <div className="col-12">
 
                 <Card>
 
-                    <div className="
-                        flex
-                        align-items-center
-                        justify-content-between
-                        mb-4
-                    ">
-
-                        <div>
-
-                            <h5 className="
-                                m-0
-                                text-900
-                            ">
-                                Pesquisa e filtros
-                            </h5>
-
-
-                            <span className="
-                                text-500
-                                text-sm
-                            ">
-                                Pesquise pelos perfis disponíveis
-                            </span>
-
-                        </div>
-
-
-                        <i className="
-                            pi
-                            pi-filter
-                            text-primary
-                            text-xl
-                        " />
-
-                    </div>
-
-
                     <div className="grid">
 
                         <div className="
                             col-12
-                            md:col-6
+                            md:col-10
                         ">
 
                             <label className="
@@ -1022,7 +1023,6 @@ const UsersProfiles = () => {
                                 Pesquisa
                             </label>
 
-
                             <span className="
                                 p-input-icon-left
                                 w-full
@@ -1033,7 +1033,6 @@ const UsersProfiles = () => {
                                     pi-search
                                 " />
 
-
                                 <InputText
                                     value={search}
                                     onChange={(e) =>
@@ -1042,7 +1041,7 @@ const UsersProfiles = () => {
                                         )
                                     }
                                     placeholder="
-                                        Nome ou descrição do perfil
+                                        Nome, descrição ou permissão
                                     "
                                     className="w-full"
                                 />
@@ -1078,9 +1077,9 @@ const UsersProfiles = () => {
             </div>
 
 
-            {/* =====================================================
+            {/* =================================================
                 TABLE
-            ===================================================== */}
+            ================================================= */}
 
             <div className="col-12">
 
@@ -1105,14 +1104,11 @@ const UsersProfiles = () => {
                                 Perfis do sistema
                             </h5>
 
-
                             <span className="
                                 text-500
                                 text-sm
                             ">
-                                {
-                                    filteredRoles.length
-                                }
+                                {filteredRoles.length}
                                 {' '}
                                 perfil(is) encontrado(s)
                             </span>
@@ -1126,9 +1122,7 @@ const UsersProfiles = () => {
                             outlined
                             size="small"
                             loading={loading}
-                            onClick={
-                                loadRoles
-                            }
+                            onClick={loadData}
                         />
 
                     </div>
@@ -1172,45 +1166,31 @@ const UsersProfiles = () => {
 
                         <Column
                             header="Perfil"
-                            body={
-                                roleTemplate
-                            }
+                            body={roleTemplate}
                             sortable
                         />
 
-
                         <Column
                             header="Descrição"
-                            body={
-                                descriptionTemplate
-                            }
+                            body={descriptionTemplate}
                         />
-
 
                         <Column
                             header="Permissões"
-                            body={
-                                permissionsTemplate
-                            }
+                            body={permissionsTemplate}
                         />
-
 
                         <Column
                             header="N.º Permissões"
-                            body={
-                                permissionCountTemplate
-                            }
+                            body={permissionCountTemplate}
                             style={{
                                 width: '10rem'
                             }}
                         />
 
-
                         <Column
                             header="Acções"
-                            body={
-                                actionTemplate
-                            }
+                            body={actionTemplate}
                             style={{
                                 width: '8rem'
                             }}
@@ -1223,9 +1203,9 @@ const UsersProfiles = () => {
             </div>
 
 
-            {/* =====================================================
+            {/* =================================================
                 ROLE DIALOG
-            ===================================================== */}
+            ================================================= */}
 
             <Dialog
                 header={
@@ -1233,18 +1213,12 @@ const UsersProfiles = () => {
                         ? 'Editar perfil'
                         : 'Novo perfil'
                 }
-                visible={
-                    dialogVisible
-                }
+                visible={dialogVisible}
                 style={{
                     width: '650px',
                     maxWidth: '95vw'
                 }}
-                onHide={() =>
-                    setDialogVisible(
-                        false
-                    )
-                }
+                onHide={closeDialog}
                 modal
             >
 
@@ -1268,7 +1242,6 @@ const UsersProfiles = () => {
                             Nome do perfil *
                         </label>
 
-
                         <InputText
                             value={name}
                             onChange={(e) =>
@@ -1280,6 +1253,7 @@ const UsersProfiles = () => {
                                 Ex.: SUPERVISOR
                             "
                             className="w-full"
+                            disabled={saving}
                         />
 
                     </div>
@@ -1298,20 +1272,18 @@ const UsersProfiles = () => {
                             Descrição
                         </label>
 
-
                         <InputText
-                            value={
-                                description
-                            }
+                            value={description}
                             onChange={(e) =>
                                 setDescription(
                                     e.target.value
                                 )
                             }
                             placeholder="
-                                Descrição da função
+                                Descrição do perfil
                             "
                             className="w-full"
+                            disabled={saving}
                         />
 
                     </div>
@@ -1329,7 +1301,6 @@ const UsersProfiles = () => {
                         ">
                             Permissões
                         </label>
-
 
                         <MultiSelect
                             value={
@@ -1350,7 +1321,17 @@ const UsersProfiles = () => {
                             display="chip"
                             filter
                             showSelectAll
+                            disabled={saving}
                         />
+
+                        <small className="
+                            block
+                            text-500
+                            mt-2
+                        ">
+                            Seleccione as permissões que
+                            este perfil poderá utilizar.
+                        </small>
 
                     </div>
 
@@ -1374,11 +1355,8 @@ const UsersProfiles = () => {
                                 Pré-visualização
                             </span>
 
-
                             <Tag
-                                value={
-                                    name
-                                }
+                                value={name}
                                 severity={
                                     name.toUpperCase() ===
                                     'ADMIN'
@@ -1407,13 +1385,9 @@ const UsersProfiles = () => {
                             label="Cancelar"
                             icon="pi pi-times"
                             outlined
-                            onClick={() =>
-                                setDialogVisible(
-                                    false
-                                )
-                            }
+                            onClick={closeDialog}
+                            disabled={saving}
                         />
-
 
                         <Button
                             label={
@@ -1426,9 +1400,8 @@ const UsersProfiles = () => {
                                     ? 'pi pi-check'
                                     : 'pi pi-shield'
                             }
-                            onClick={
-                                handleSave
-                            }
+                            loading={saving}
+                            onClick={handleSave}
                         />
 
                     </div>

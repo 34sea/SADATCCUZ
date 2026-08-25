@@ -437,3 +437,115 @@ exports.assignPermissionsToRole = async (req, res) => {
     connection.release();
   }
 };
+
+// Atualizar Role
+exports.updateRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'O nome da role é obrigatório.' });
+    }
+
+    const [result] = await pool.query(
+      'UPDATE roles SET name = ?, description = ? WHERE id = ?',
+      [name, description || null, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Role não encontrada.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Role atualizada com sucesso.',
+      data: { id, name, description }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Deletar Role
+exports.deleteRole = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params;
+
+    await connection.beginTransaction();
+
+    // Remove as permissões vinculadas antes de deletar a role
+    await connection.query('DELETE FROM role_permissions WHERE role_id = ?', [id]);
+    const [result] = await connection.query('DELETE FROM roles WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: 'Role não encontrada.' });
+    }
+
+    await connection.commit();
+    return res.status(200).json({ success: true, message: 'Role deletada com sucesso.' });
+  } catch (error) {
+    await connection.rollback();
+    return res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
+// Atualizar Permissão
+exports.updatePermission = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'O nome da permissão é obrigatório.' });
+    }
+
+    const [result] = await pool.query(
+      'UPDATE permissions SET name = ?, description = ? WHERE id = ?',
+      [name, description || null, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Permissão não encontrada.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Permissão atualizada com sucesso.',
+      data: { id, name, description }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Deletar Permissão
+exports.deletePermission = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params;
+
+    await connection.beginTransaction();
+
+    // Remove os vínculos em role_permissions antes de deletar a permissão
+    await connection.query('DELETE FROM role_permissions WHERE permission_id = ?', [id]);
+    const [result] = await connection.query('DELETE FROM permissions WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: 'Permissão não encontrada.' });
+    }
+
+    await connection.commit();
+    return res.status(200).json({ success: true, message: 'Permissão deletada com sucesso.' });
+  } catch (error) {
+    await connection.rollback();
+    return res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+};
