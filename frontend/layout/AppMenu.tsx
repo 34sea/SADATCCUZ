@@ -594,7 +594,8 @@ const model: AppMenuItemWithRoles[] = [
             'ADMIN',
             'AVALIADOR_PRE_PROJECTO',
             'COORDENADOR_TCC',
-            'CHEFE_DEPARTAMENTO'
+            'CHEFE_DEPARTAMENTO',
+            'ESTUDANTE'
         ],
 
         items: [
@@ -612,7 +613,7 @@ const model: AppMenuItemWithRoles[] = [
             {
                 label: 'Gestão',
                 icon: 'pi pi-fw pi-list',
-                to: '/pages/preProject/gestao',
+                to: '/pages/preProject/manageproject',
 
                 roles: [
                     'ADMIN',

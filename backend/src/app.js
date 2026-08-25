@@ -31,7 +31,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Rotas da API
 app.use('/api/users', userRoutes);
 app.use('/api/academic', academicRoutes);
-app.use('/api/pre-projectos', preProjectRoutes);
+app.use('/api/pre-projects', preProjectRoutes);
 app.use('/api/guidance-notebooks', guidanceNotebookRoutes);
 app.use('/api/scientific-articles', scientificArticleRoutes);
 app.use('/api/defenses', defenseScheduleRoutes);

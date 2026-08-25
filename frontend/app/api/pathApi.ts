@@ -7,6 +7,7 @@ const pathUrls = {
   'roles2':"/users/roles",
   'permition':"/users/permissions/all",
   'permition2':"/users/permissions",
+  'preProjects':"/pre-projects",
 }
 
 
