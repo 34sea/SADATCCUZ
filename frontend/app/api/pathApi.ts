@@ -8,6 +8,8 @@ const pathUrls = {
   'permition':"/users/permissions/all",
   'permition2':"/users/permissions",
   'preProjects':"/pre-projects",
+  'guidanceNotebooks': '/guidance-notebooks',
+  'tasks': '/guidance-notebooks',
 }
 
 

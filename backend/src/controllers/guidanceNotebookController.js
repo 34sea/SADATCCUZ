@@ -389,3 +389,496 @@ exports.verifyByDepartment = async (req, res) => {
     connection.release();
   }
 };
+
+// ==========================================
+// LISTAR CADERNOS DO ORIENTADOR LOGADO
+// ==========================================
+// ==========================================
+// LISTAR CADERNOS DO ORIENTADOR
+// ==========================================
+
+exports.getNotebooksByAdvisor = async (req, res) => {
+  try {
+    // Pegamos o orientador autenticado pelo token
+    const advisorId = req.user.id;
+
+    const [notebooks] = await pool.query(
+      `SELECT 
+          g.*,
+
+          u_student.name AS student_name,
+          u_student.email AS student_email,
+
+          u_advisor.name AS advisor_name,
+          u_advisor.email AS advisor_email,
+
+          p.title AS pre_project_title,
+          p.status AS pre_project_status,
+          p.thematic_area AS pre_project_thematic_area
+
+       FROM guidance_notebooks g
+
+       INNER JOIN users u_student
+          ON g.student_id = u_student.id
+
+       INNER JOIN users u_advisor
+          ON g.advisor_id = u_advisor.id
+
+       INNER JOIN pre_projects p
+          ON g.pre_project_id = p.id
+
+       WHERE g.advisor_id = ?
+
+       ORDER BY g.created_at DESC`,
+      [advisorId]
+    );
+
+    // Buscar tarefas de todos os cadernos
+    for (const notebook of notebooks) {
+      const [tasks] = await pool.query(
+        `SELECT *
+         FROM guidance_tasks
+         WHERE notebook_id = ?
+         ORDER BY created_at DESC`,
+        [notebook.id]
+      );
+
+      notebook.tasks = tasks;
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: notebooks
+    });
+
+  } catch (error) {
+
+    console.error('Erro ao listar cadernos:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao carregar os cadernos de orientação.',
+      error: error.message
+    });
+  }
+};
+
+// ==========================================
+// LISTAR CADERNO DO ALUNO AUTENTICADO
+// ==========================================
+
+exports.getMyNotebook = async (req, res) => {
+  try {
+
+    // ID do aluno autenticado pelo token
+    const studentId = req.user.id;
+
+    // ==========================================
+    // BUSCAR CADERNO DO ALUNO
+    // ==========================================
+
+    const [notebooks] = await pool.query(
+      `SELECT 
+          g.*,
+
+          u_student.name AS student_name,
+          u_student.email AS student_email,
+
+          u_advisor.name AS advisor_name,
+          u_advisor.email AS advisor_email,
+
+          p.title AS pre_project_title,
+          p.status AS pre_project_status,
+          p.thematic_area AS pre_project_thematic_area,
+          p.abstract AS pre_project_abstract
+
+       FROM guidance_notebooks g
+
+       INNER JOIN users u_student
+          ON g.student_id = u_student.id
+
+       INNER JOIN users u_advisor
+          ON g.advisor_id = u_advisor.id
+
+       INNER JOIN pre_projects p
+          ON g.pre_project_id = p.id
+
+       WHERE g.student_id = ?
+
+       ORDER BY g.created_at DESC
+
+       LIMIT 1`,
+      [studentId]
+    );
+
+    if (notebooks.length === 0) {
+
+      return res.status(404).json({
+        success: false,
+        message: 'Não existe um caderno de orientação associado ao estudante.'
+      });
+
+    }
+
+    const notebook = notebooks[0];
+
+
+    // ==========================================
+    // SESSÕES
+    // ==========================================
+
+    const [sessions] = await pool.query(
+      `SELECT *
+       FROM guidance_sessions
+       WHERE notebook_id = ?
+       ORDER BY session_date DESC`,
+      [notebook.id]
+    );
+
+
+    // ==========================================
+    // INDICADORES DE CADA SESSÃO
+    // ==========================================
+
+    for (const session of sessions) {
+
+      const [evaluations] = await pool.query(
+        `SELECT
+            e.id,
+            e.session_id,
+            e.indicator_id,
+            e.status,
+            e.observations,
+
+            i.indicator_text,
+
+            b.id AS block_id,
+            b.block_number,
+            b.name AS block_name
+
+         FROM guidance_indicator_evaluations e
+
+         INNER JOIN guidance_indicators i
+            ON e.indicator_id = i.id
+
+         INNER JOIN guidance_blocks b
+            ON i.block_id = b.id
+
+         WHERE e.session_id = ?
+
+         ORDER BY b.block_number ASC, i.id ASC`,
+        [session.id]
+      );
+
+      session.evaluations = evaluations;
+    }
+
+
+    // ==========================================
+    // TAREFAS
+    // ==========================================
+
+    const [tasks] = await pool.query(
+      `SELECT *
+       FROM guidance_tasks
+       WHERE notebook_id = ?
+       ORDER BY created_at DESC`,
+      [notebook.id]
+    );
+
+
+    // ==========================================
+    // VERIFICAÇÕES
+    // ==========================================
+
+    const [verifications] = await pool.query(
+      `SELECT
+          v.*,
+          u.name AS verified_by_name
+
+       FROM guidance_department_verifications v
+
+       INNER JOIN users u
+          ON v.verified_by = u.id
+
+       WHERE v.notebook_id = ?
+
+       ORDER BY v.verified_at DESC`,
+      [notebook.id]
+    );
+
+
+    // ==========================================
+    // BLOCOS + INDICADORES
+    // ==========================================
+
+    const [blocks] = await pool.query(
+      `SELECT *
+       FROM guidance_blocks
+       ORDER BY block_number ASC`
+    );
+
+    const [indicators] = await pool.query(
+      `SELECT *
+       FROM guidance_indicators
+       ORDER BY block_id ASC, id ASC`
+    );
+
+
+    const blocksWithIndicators = blocks.map(block => ({
+      ...block,
+
+      indicators: indicators.filter(
+        indicator =>
+          indicator.block_id === block.id
+      )
+    }));
+
+
+    // ==========================================
+    // CALCULAR INDICADORES
+    // ==========================================
+
+    const totalIndicators = indicators.length;
+
+
+    // IDs dos indicadores que já foram avaliados
+    const evaluatedIndicatorIds = new Set();
+
+    let completedIndicators = 0;
+
+    let partialIndicators = 0;
+
+    let notCompletedIndicators = 0;
+
+
+    for (const session of sessions) {
+
+      for (const evaluation of session.evaluations || []) {
+
+        evaluatedIndicatorIds.add(
+          evaluation.indicator_id
+        );
+
+        if (
+          evaluation.status === 'CUMPRIDO'
+        ) {
+
+          completedIndicators++;
+
+        }
+
+        else if (
+          evaluation.status === 'CUMPRIDO_PARCIALMENTE'
+        ) {
+
+          partialIndicators++;
+
+        }
+
+        else if (
+          evaluation.status === 'NAO_CUMPRIDO'
+        ) {
+
+          notCompletedIndicators++;
+
+        }
+
+      }
+
+    }
+
+
+    // Evitar duplicação caso um indicador
+    // seja avaliado em várias sessões.
+    const latestEvaluations = {};
+
+    for (const session of sessions) {
+
+      for (const evaluation of session.evaluations || []) {
+
+        latestEvaluations[
+          evaluation.indicator_id
+        ] = evaluation;
+
+      }
+
+    }
+
+
+    const latestEvaluationList =
+      Object.values(latestEvaluations);
+
+
+    const completedLatestIndicators =
+      latestEvaluationList.filter(
+        evaluation =>
+          evaluation.status === 'CUMPRIDO'
+      ).length;
+
+
+    const partialLatestIndicators =
+      latestEvaluationList.filter(
+        evaluation =>
+          evaluation.status === 'CUMPRIDO_PARCIALMENTE'
+      ).length;
+
+
+    const notCompletedLatestIndicators =
+      latestEvaluationList.filter(
+        evaluation =>
+          evaluation.status === 'NAO_CUMPRIDO'
+      ).length;
+
+
+    const evaluatedIndicators =
+      latestEvaluationList.length;
+
+
+    const indicatorProgress =
+      totalIndicators > 0
+        ? Math.round(
+            (
+              completedLatestIndicators /
+              totalIndicators
+            ) * 100
+          )
+        : 0;
+
+
+    // ==========================================
+    // PROGRESSO DAS TAREFAS
+    // ==========================================
+
+    const totalTasks = tasks.length;
+
+    const completedTasks =
+      tasks.filter(
+        task =>
+          task.status === 'CONCLUIDA'
+      ).length;
+
+    const pendingTasks =
+      tasks.filter(
+        task =>
+          task.status === 'PENDENTE'
+      ).length;
+
+    const inProgressTasks =
+      tasks.filter(
+        task =>
+          task.status === 'EM_PROGRESSO'
+      ).length;
+
+    const deliveredTasks =
+      tasks.filter(
+        task =>
+          task.status === 'ENTREGUE'
+      ).length;
+
+
+    const taskProgress =
+      totalTasks > 0
+        ? Math.round(
+            (
+              completedTasks /
+              totalTasks
+            ) * 100
+          )
+        : 0;
+
+
+    // ==========================================
+    // PROGRESSO GERAL
+    // ==========================================
+
+    const overallProgress =
+      Math.round(
+        (
+          indicatorProgress +
+          taskProgress
+        ) / 2
+      );
+
+
+    // ==========================================
+    // MONTAR RESPOSTA
+    // ==========================================
+
+    notebook.sessions = sessions;
+
+    notebook.tasks = tasks;
+
+    notebook.verifications = verifications;
+
+    notebook.blocks = blocksWithIndicators;
+
+
+    notebook.progress = {
+
+      overall: overallProgress,
+
+      indicators: {
+
+        total: totalIndicators,
+
+        evaluated: evaluatedIndicators,
+
+        completed: completedLatestIndicators,
+
+        partial: partialLatestIndicators,
+
+        not_completed:
+          notCompletedLatestIndicators,
+
+        percentage: indicatorProgress
+
+      },
+
+      tasks: {
+
+        total: totalTasks,
+
+        completed: completedTasks,
+
+        pending: pendingTasks,
+
+        in_progress: inProgressTasks,
+
+        delivered: deliveredTasks,
+
+        percentage: taskProgress
+
+      }
+
+    };
+
+
+    return res.status(200).json({
+
+      success: true,
+
+      data: notebook
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      'Erro ao carregar caderno do aluno:',
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        'Erro ao carregar o caderno de orientação.',
+
+      error: error.message
+
+    });
+
+  }
+};

@@ -667,6 +667,19 @@ const model: AppMenuItemWithRoles[] = [
             },
 
             {
+                label: 'Cadernos',
+                icon: 'pi pi-fw pi-chart-bar',
+                to: '/pages/book/notebook',
+
+                roles: [
+                    'ADMIN',
+                    'ESTUDANTE',
+                    'ORIENTADOR',
+                    'COORDENADOR_TCC'
+                ]
+            },
+
+            {
                 label: 'Sessões e Tarefas',
                 icon: 'pi pi-fw pi-calendar',
                 to: '/orientacoes/sessoes',

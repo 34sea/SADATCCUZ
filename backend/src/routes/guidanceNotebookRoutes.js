@@ -3,21 +3,28 @@ const router = express.Router();
 const guidanceController = require('../controllers/guidanceNotebookController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const upload = require('../config/multer'); 
-
-/**
- * @swagger
- * tags:
- *   - name: Caderno de Orientação
- *     description: Gestão do caderno de orientação, declarações e aprovação de defesa
- *   - name: Sessões & Tarefas
- *     description: Registos de encontros de orientação, avaliações de blocos e acompanhamento de tarefas
- *   - name: Departamento - Verificações
- *     description: Homologações intermédias e finais do departamento
- */
-
 // ==========================================
 // CADERNO DE ORIENTAÇÃO
 // ==========================================
+
+/**
+ * @swagger
+ * /api/guidance-notebooks:
+ *   get:
+ *     summary: Listar cadernos de orientação do orientador autenticado
+ *     tags: [Caderno de Orientação]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de cadernos do orientador
+ */
+router.get(
+    '/',
+    authMiddleware,
+    guidanceController.getNotebooksByAdvisor
+);
+
 
 /**
  * @swagger
@@ -48,7 +55,12 @@ const upload = require('../config/multer');
  *       201:
  *         description: Caderno de orientação criado com sucesso
  */
-router.post('/', authMiddleware, guidanceController.createNotebook);
+router.post(
+    '/',
+    authMiddleware,
+    guidanceController.createNotebook
+);
+
 
 /**
  * @swagger
@@ -62,13 +74,38 @@ router.post('/', authMiddleware, guidanceController.createNotebook);
  *       200:
  *         description: Estrutura de blocos e indicadores de verificação
  */
-router.get('/blocks', authMiddleware, guidanceController.getBlocksWithIndicators);
+router.get(
+    '/blocks',
+    authMiddleware,
+    guidanceController.getBlocksWithIndicators
+);
+
+/**
+ * @swagger
+ * /api/guidance-notebooks/student/me:
+ *   get:
+ *     summary: Obter o caderno do aluno autenticado
+ *     tags: [Caderno de Orientação]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Caderno do aluno
+ *       404:
+ *         description: Caderno não encontrado
+ */
+router.get(
+    '/student/me',
+    authMiddleware,
+    guidanceController.getMyNotebook
+);
+
 
 /**
  * @swagger
  * /api/guidance-notebooks/{id}:
  *   get:
- *     summary: Obter detalhes completos do caderno (sessões, tarefas e verificações)
+ *     summary: Obter detalhes completos do caderno
  *     tags: [Caderno de Orientação]
  *     security:
  *       - bearerAuth: []
@@ -82,8 +119,11 @@ router.get('/blocks', authMiddleware, guidanceController.getBlocksWithIndicators
  *       200:
  *         description: Detalhes do caderno
  */
-router.get('/:id', authMiddleware, guidanceController.getNotebookById);
-
+router.get(
+    '/:id',
+    authMiddleware,
+    guidanceController.getNotebookById
+);
 /**
  * @swagger
  * /api/guidance-notebooks/{id}/declarations:
