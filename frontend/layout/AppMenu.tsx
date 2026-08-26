@@ -561,13 +561,7 @@ const model: AppMenuItemWithRoles[] = [
                 to: '/dash/student',
 
                 roles: [
-                    'ESTUDANTE',
-                    'ORIENTADOR',
-                    'AVALIADOR_PRE_PROJECTO',
-                    'PRESIDENTE_JURI',
-                    'OPONENTE',
-                    'COORDENADOR_TCC',
-                    'CHEFE_DEPARTAMENTO'
+                    'ESTUDANTE'
                 ]
             },
 
@@ -605,7 +599,6 @@ const model: AppMenuItemWithRoles[] = [
                 to: '/pages/preProject/submitPreProject',
 
                 roles: [
-                    'ADMIN',
                     'ESTUDANTE'
                 ]
             },
@@ -625,11 +618,21 @@ const model: AppMenuItemWithRoles[] = [
             {
                 label: 'Avaliação',
                 icon: 'pi pi-fw pi-check-square',
-                to: '/pages/preProject/projectEvaluation',
+                to: '/pages/preProject/evaluator',
+                // to: '/pages/preProject/projectEvaluation',
 
                 roles: [
-                    'ADMIN',
                     'AVALIADOR_PRE_PROJECTO'
+                ]
+            },
+            {
+                label: 'Status',
+                icon: 'pi pi-fw pi-check-square',
+                to: '/pages/preProject/status',
+                // to: '/pages/preProject/projectEvaluation',
+
+                roles: [
+                    'ESTUDANTE'
                 ]
             }
         ]

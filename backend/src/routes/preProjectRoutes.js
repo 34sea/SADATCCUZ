@@ -84,6 +84,37 @@ router.route('/')
   .get(authMiddleware, preProjectController.getPreProjects)
   .post(authMiddleware, upload.single('document'), preProjectController.submitPreProject);
 
+  /**
+ * @swagger
+ * /api/pre-projects/my-evaluations:
+ *   get:
+ *     summary: Listar pré-projectos atribuídos ao avaliador autenticado
+ *     tags: [Avaliação e Pareceres]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - SUBMETIDO
+ *             - EM_ATRIBUICAO_AVALIADORES
+ *             - EM_AVALIACAO
+ *             - APROVADO
+ *             - REPROVADO
+ *             - EM_REVISAO
+ *             - RESUBMETIDO
+ *     responses:
+ *       200:
+ *         description: Lista de pré-projectos atribuídos ao avaliador
+ */
+router.get(
+  '/my-evaluations',
+  authMiddleware,
+  preProjectController.getMyEvaluations
+);
+
 /**
  * @swagger
  * /api/pre-projects/{id}:

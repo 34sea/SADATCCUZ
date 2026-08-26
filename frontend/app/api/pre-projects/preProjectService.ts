@@ -335,3 +335,54 @@ export const resubmitPreProject = async (
 
     return response.data;
 };
+
+// export const getMyAssignedPreProjects = async (): Promise<PreProject[]> => {
+//     const userData = getUserFromStorage();
+
+//     const userId = userData?.data?.user?.id;
+
+//     if (!userId) {
+//         throw new Error(
+//             'Utilizador autenticado não encontrado.'
+//         );
+//     }
+
+//     const projects = await getPreProjects();
+
+//     return projects.filter(project =>
+//         project.evaluators?.some(
+//             evaluator =>
+//                 evaluator.evaluator_id === userId
+//         )
+//     );
+// };
+
+
+// =====================================================
+// GET MY EVALUATIONS
+// =====================================================
+
+export interface MyEvaluationFilters {
+    status?: string;
+}
+
+export const getMyAssignedPreProjects = async (
+    filters?: MyEvaluationFilters
+): Promise<PreProject[]> => {
+
+    const params: Record<string, any> = {};
+
+    if (filters?.status) {
+        params.status = filters.status;
+    }
+
+    const response = await api.get(
+        `${pathUrls.preProjects}/my-evaluations`,
+        {
+            params,
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data.data;
+};

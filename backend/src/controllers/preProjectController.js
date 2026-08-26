@@ -423,3 +423,200 @@ exports.finalizeDecision = async (req, res) => {
     connection.release();
   }
 };
+
+// ==========================================
+// PRÉ-PROJECTOS ATRIBUÍDOS AO AVALIADOR LOGADO
+// ==========================================
+
+// exports.getMyEvaluations = async (req, res) => {
+//   try {
+//     const evaluator_id = req.user.id;
+
+//     const { status } = req.query;
+
+//     let query = `
+//       SELECT
+//         p.*,
+
+//         u_student.name AS student_name,
+//         u_student.email AS student_email,
+
+//         u_advisor.name AS proposed_advisor_name,
+
+//         pe.id AS evaluator_assignment_id,
+//         pe.assigned_at,
+
+//         pr.id AS review_id,
+//         pr.score,
+//         pr.opinion,
+//         pr.observations,
+//         pr.submitted_at
+
+//       FROM pre_project_evaluators pe
+
+//       INNER JOIN pre_projects p
+//         ON p.id = pe.pre_project_id
+
+//       INNER JOIN users u_student
+//         ON p.student_id = u_student.id
+
+//       LEFT JOIN users u_advisor
+//         ON p.proposed_advisor_id = u_advisor.id
+
+//       LEFT JOIN pre_project_reviews pr
+//         ON pr.pre_project_evaluator_id = pe.id
+
+//       WHERE pe.evaluator_id = ?
+//     `;
+
+//     const params = [evaluator_id];
+
+//     if (status) {
+//       query += ` AND p.status = ?`;
+//       params.push(status);
+//     }
+
+//     query += `
+//       ORDER BY
+//         CASE
+//           WHEN pr.id IS NULL THEN 0
+//           ELSE 1
+//         END ASC,
+//         p.updated_at DESC
+//     `;
+
+//     const [projects] = await pool.query(
+//       query,
+//       params
+//     );
+
+//     return res.status(200).json({
+//       success: true,
+//       data: projects
+//     });
+
+//   } catch (error) {
+
+//     console.error(
+//       'getMyEvaluations:',
+//       error
+//     );
+
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
+
+// ==========================================
+// PRÉ-PROJECTOS ATRIBUÍDOS AO AVALIADOR
+// ==========================================
+
+exports.getMyEvaluations = async (req, res) => {
+  try {
+    const evaluator_id = req.user.id;
+
+    const [projects] = await pool.query(
+      `
+      SELECT 
+        p.*,
+        u_student.name AS student_name,
+        u_student.email AS student_email,
+        u_advisor.name AS proposed_advisor_name,
+
+        pe.id AS evaluator_assignment_id,
+        pe.evaluator_id,
+        u_eval.name AS evaluator_name,
+        pe.assigned_at,
+        u_coord.name AS assigned_by_name,
+
+        pr.id AS review_id,
+        pr.score,
+        pr.opinion,
+        pr.observations,
+        pr.submitted_at
+
+      FROM pre_projects p
+
+      INNER JOIN users u_student
+        ON p.student_id = u_student.id
+
+      LEFT JOIN users u_advisor
+        ON p.proposed_advisor_id = u_advisor.id
+
+      INNER JOIN pre_project_evaluators pe
+        ON pe.pre_project_id = p.id
+        AND pe.evaluator_id = ?
+
+      INNER JOIN users u_eval
+        ON pe.evaluator_id = u_eval.id
+
+      INNER JOIN users u_coord
+        ON pe.assigned_by = u_coord.id
+
+      LEFT JOIN pre_project_reviews pr
+        ON pr.pre_project_evaluator_id = pe.id
+
+      ORDER BY p.updated_at DESC
+      `,
+      [evaluator_id]
+    );
+
+    // Transformar o resultado para manter
+    // o mesmo formato usado no frontend
+    const result = projects.map(project => {
+
+      const {
+        evaluator_assignment_id,
+        evaluator_id,
+        evaluator_name,
+        assigned_at,
+        assigned_by_name,
+        review_id,
+        score,
+        opinion,
+        observations,
+        submitted_at,
+
+        ...projectData
+      } = project;
+
+      return {
+        ...projectData,
+
+        evaluators: [
+          {
+            evaluator_assignment_id,
+            evaluator_id,
+            evaluator_name,
+            assigned_at,
+            assigned_by_name,
+            review_id,
+            score,
+            opinion,
+            observations,
+            submitted_at
+          }
+        ]
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+
+    console.error(
+      'Erro ao buscar pré-projectos do avaliador:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
