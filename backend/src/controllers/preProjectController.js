@@ -620,3 +620,330 @@ exports.getMyEvaluations = async (req, res) => {
     });
   }
 };
+
+// ==========================================
+// PRÉ-PROJECTO DO ESTUDANTE AUTENTICADO
+// ==========================================
+
+exports.getMyPreProject = async (req, res) => {
+
+  try {
+
+    const student_id = req.user.id;
+
+    // Buscar o pré-projecto do estudante
+    const [projects] = await pool.query(
+      `
+      SELECT
+        p.*,
+
+        u_student.name AS student_name,
+        u_student.email AS student_email,
+
+        u_advisor.name AS proposed_advisor_name
+
+      FROM pre_projects p
+
+      INNER JOIN users u_student
+        ON p.student_id = u_student.id
+
+      LEFT JOIN users u_advisor
+        ON p.proposed_advisor_id = u_advisor.id
+
+      WHERE p.student_id = ?
+
+      ORDER BY p.updated_at DESC
+
+      LIMIT 1
+      `,
+      [student_id]
+    );
+
+
+    if (projects.length === 0) {
+
+      return res.status(200).json({
+        success: true,
+        data: null
+      });
+
+    }
+
+
+    const project = projects[0];
+
+
+    // ==========================================
+    // AVALIADORES
+    // ==========================================
+
+    const [evaluators] = await pool.query(
+      `
+      SELECT
+        pe.id AS evaluator_assignment_id,
+        pe.evaluator_id,
+
+        u_eval.name AS evaluator_name,
+
+        pe.assigned_at,
+
+        pr.id AS review_id,
+        pr.score,
+        pr.opinion,
+        pr.observations,
+        pr.submitted_at
+
+      FROM pre_project_evaluators pe
+
+      INNER JOIN users u_eval
+        ON pe.evaluator_id = u_eval.id
+
+      LEFT JOIN pre_project_reviews pr
+        ON pr.pre_project_evaluator_id = pe.id
+
+      WHERE pe.pre_project_id = ?
+
+      ORDER BY pe.assigned_at ASC
+      `,
+      [project.id]
+    );
+
+
+    // ==========================================
+    // HISTÓRICO
+    // ==========================================
+
+    const [logs] = await pool.query(
+      `
+      SELECT
+        l.*,
+        u.name AS changed_by_name
+
+      FROM pre_project_status_logs l
+
+      INNER JOIN users u
+        ON l.changed_by = u.id
+
+      WHERE l.pre_project_id = ?
+
+      ORDER BY l.created_at ASC
+      `,
+      [project.id]
+    );
+
+
+    project.evaluators = evaluators;
+    project.status_history = logs;
+
+
+    return res.status(200).json({
+      success: true,
+      data: project
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      'Erro ao buscar pré-projecto do estudante:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+
+  }
+
+};
+
+// ==========================================
+// 5. ESTADO DO PRÉ-PROJECTO DO ESTUDANTE
+// ==========================================
+
+exports.getMyPreProjectStatus = async (req, res) => {
+  try {
+    const student_id = req.user.id;
+
+    // Buscar o pré-projecto mais recente do estudante
+    const [projects] = await pool.query(
+      `
+      SELECT
+        p.*,
+
+        u_student.name AS student_name,
+        u_student.email AS student_email,
+
+        u_advisor.name AS proposed_advisor_name
+
+      FROM pre_projects p
+
+      INNER JOIN users u_student
+        ON p.student_id = u_student.id
+
+      LEFT JOIN users u_advisor
+        ON p.proposed_advisor_id = u_advisor.id
+
+      WHERE p.student_id = ?
+
+      ORDER BY p.updated_at DESC
+
+      LIMIT 1
+      `,
+      [student_id]
+    );
+
+    // =====================================================
+    // NENHUM PRÉ-PROJECTO
+    // =====================================================
+
+    if (projects.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: 'O estudante ainda não submeteu nenhum pré-projecto.'
+      });
+    }
+
+    const project = projects[0];
+
+    // =====================================================
+    // AVALIADORES
+    // =====================================================
+
+    const [evaluators] = await pool.query(
+      `
+      SELECT
+        pe.id AS evaluator_assignment_id,
+        pe.evaluator_id,
+
+        u_eval.name AS evaluator_name,
+
+        pe.assigned_at,
+
+        pr.id AS review_id,
+        pr.score,
+        pr.opinion,
+        pr.observations,
+        pr.submitted_at
+
+      FROM pre_project_evaluators pe
+
+      INNER JOIN users u_eval
+        ON pe.evaluator_id = u_eval.id
+
+      LEFT JOIN pre_project_reviews pr
+        ON pr.pre_project_evaluator_id = pe.id
+
+      WHERE pe.pre_project_id = ?
+
+      ORDER BY pe.assigned_at ASC
+      `,
+      [project.id]
+    );
+
+    // =====================================================
+    // HISTÓRICO
+    // =====================================================
+
+    const [logs] = await pool.query(
+      `
+      SELECT
+        l.*,
+        u.name AS changed_by_name
+
+      FROM pre_project_status_logs l
+
+      INNER JOIN users u
+        ON l.changed_by = u.id
+
+      WHERE l.pre_project_id = ?
+
+      ORDER BY l.created_at ASC
+      `,
+      [project.id]
+    );
+
+    // =====================================================
+    // ESTATÍSTICAS DAS AVALIAÇÕES
+    // =====================================================
+
+    const totalEvaluators = evaluators.length;
+
+    const completedEvaluations = evaluators.filter(
+      evaluator => evaluator.review_id !== null
+    ).length;
+
+    const pendingEvaluations =
+      totalEvaluators - completedEvaluations;
+
+    // =====================================================
+    // DATA DA SUBMISSÃO
+    // =====================================================
+
+    const submissionLog = logs.find(
+      log =>
+        log.new_status === 'SUBMETIDO'
+    );
+
+    // =====================================================
+    // DATA DA DECISÃO
+    // =====================================================
+
+    const decisionLog = [...logs]
+      .reverse()
+      .find(
+        log =>
+          ['APROVADO', 'REPROVADO', 'EM_REVISAO']
+            .includes(log.new_status)
+      );
+
+    // =====================================================
+    // RESPOSTA
+    // =====================================================
+
+    project.evaluators = evaluators;
+
+    project.status_history = logs;
+
+    project.evaluation_summary = {
+      total_evaluators: totalEvaluators,
+      completed_evaluations: completedEvaluations,
+      pending_evaluations: pendingEvaluations,
+      all_evaluated:
+        totalEvaluators > 0 &&
+        completedEvaluations === totalEvaluators
+    };
+
+    project.submission_date =
+      submissionLog?.created_at ||
+      project.created_at ||
+      null;
+
+    project.decision_date =
+      decisionLog?.created_at ||
+      null;
+
+    project.decision_comments =
+      decisionLog?.comments ||
+      null;
+
+    return res.status(200).json({
+      success: true,
+      data: project
+    });
+
+  } catch (error) {
+
+    console.error(
+      'Erro ao buscar estado do pré-projecto:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};

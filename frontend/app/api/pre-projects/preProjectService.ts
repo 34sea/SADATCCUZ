@@ -28,6 +28,53 @@ export interface PreProject {
     status_history?: StatusHistory[];
 }
 
+export interface EvaluationSummary {
+    total_evaluators: number;
+    completed_evaluations: number;
+    pending_evaluations: number;
+    all_evaluated: boolean;
+}
+
+export interface PreProject2 {
+    id: number;
+    student_id: number;
+    title: string;
+    thematic_area: string;
+
+    proposed_advisor_id?: number | null;
+    proposed_advisor_name?: string | null;
+
+    abstract: string;
+    document_url: string;
+
+    version: number;
+    status: string;
+
+    final_decision?: string | null;
+
+    created_at?: string;
+    updated_at?: string;
+
+    student_name?: string;
+    student_email?: string;
+
+    // ==========================================
+    // ACOMPANHAMENTO DO ESTUDANTE
+    // ==========================================
+
+    submission_date?: string | null;
+
+    decision_date?: string | null;
+
+    decision_comments?: string | null;
+
+    evaluation_summary?: EvaluationSummary;
+
+    evaluators?: PreProjectEvaluator[];
+
+    status_history?: StatusHistory[];
+}
+
 export interface PreProjectEvaluator {
     evaluator_assignment_id: number;
     evaluator_id: number;
@@ -380,6 +427,22 @@ export const getMyAssignedPreProjects = async (
         `${pathUrls.preProjects}/my-evaluations`,
         {
             params,
+            headers: getAuthHeaders()
+        }
+    );
+
+    return response.data.data;
+};
+
+// =====================================================
+// GET MY PRE-PROJECT STATUS
+// =====================================================
+
+export const getMyPreProject = async (): Promise<PreProject2 | null> => {
+
+    const response = await api.get(
+        `${pathUrls.preProjects}/my-status`,
+        {
             headers: getAuthHeaders()
         }
     );

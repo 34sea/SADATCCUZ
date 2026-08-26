@@ -84,6 +84,142 @@ router.route('/')
   .get(authMiddleware, preProjectController.getPreProjects)
   .post(authMiddleware, upload.single('document'), preProjectController.submitPreProject);
 
+  // ==========================================
+// 5. ACOMPANHAMENTO DO ESTUDANTE
+// ==========================================
+
+/**
+ * @swagger
+ * /api/pre-projects/my-status:
+ *   get:
+ *     summary: Consultar estado do próprio pré-projecto (Estudante)
+ *     tags: [Acompanhamento do Estudante]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Estado do pré-projecto retornado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 2
+ *                     student_id:
+ *                       type: integer
+ *                       example: 3
+ *                     title:
+ *                       type: string
+ *                       example: Sistema de gestão de frotas
+ *                     thematic_area:
+ *                       type: string
+ *                       example: Inteligência Artificial
+ *                     proposed_advisor_id:
+ *                       type: integer
+ *                       nullable: true
+ *                       example: 5
+ *                     proposed_advisor_name:
+ *                       type: string
+ *                       nullable: true
+ *                       example: Dr. João Manuel
+ *                     abstract:
+ *                       type: string
+ *                     document_url:
+ *                       type: string
+ *                     version:
+ *                       type: integer
+ *                       example: 1
+ *                     status:
+ *                       type: string
+ *                       example: EM_AVALIACAO
+ *                     final_decision:
+ *                       type: string
+ *                       nullable: true
+ *                       enum:
+ *                         - APROVADO
+ *                         - REPROVADO
+ *                         - EM_REVISAO
+ *                         - null
+ *                     submission_date:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                     decision_date:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                     decision_comments:
+ *                       type: string
+ *                       nullable: true
+ *                     evaluation_summary:
+ *                       type: object
+ *                       properties:
+ *                         total_evaluators:
+ *                           type: integer
+ *                           example: 3
+ *                         completed_evaluations:
+ *                           type: integer
+ *                           example: 2
+ *                         pending_evaluations:
+ *                           type: integer
+ *                           example: 1
+ *                         all_evaluated:
+ *                           type: boolean
+ *                           example: false
+ *                     evaluators:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           evaluator_assignment_id:
+ *                             type: integer
+ *                           evaluator_id:
+ *                             type: integer
+ *                           evaluator_name:
+ *                             type: string
+ *                           assigned_at:
+ *                             type: string
+ *                             format: date-time
+ *                           review_id:
+ *                             type: integer
+ *                             nullable: true
+ *                           score:
+ *                             type: number
+ *                             nullable: true
+ *                           opinion:
+ *                             type: string
+ *                             nullable: true
+ *                             enum:
+ *                               - FAVORAVEL
+ *                               - FAVORAVEL_COM_RECOMENDACOES
+ *                               - DESFAVORAVEL
+ *                           observations:
+ *                             type: string
+ *                             nullable: true
+ *                           submitted_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Pré-projecto não encontrado
+ */
+router.get(
+  '/my-status',
+  authMiddleware,
+  preProjectController.getMyPreProjectStatus
+);
+
   /**
  * @swagger
  * /api/pre-projects/my-evaluations:
@@ -290,3 +426,4 @@ router.post('/reviews', authMiddleware, preProjectController.submitReview);
 router.put('/:id/decision', authMiddleware, preProjectController.finalizeDecision);
 
 module.exports = router;
+
