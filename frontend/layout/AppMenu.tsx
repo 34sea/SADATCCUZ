@@ -654,7 +654,7 @@ const model: AppMenuItemWithRoles[] = [
 
         items: [
             {
-                label: 'Sessões',
+                label: 'Minhas Sessões',
                 icon: 'pi pi-fw pi-chart-bar',
                 to: '/pages/book/evaluation',
 
@@ -666,17 +666,17 @@ const model: AppMenuItemWithRoles[] = [
                 ]
             },
 
-            // {
-            //     label: 'Sessões e Tarefas',
-            //     icon: 'pi pi-fw pi-calendar',
-            //     to: '/orientacoes/sessoes',
+            {
+                label: 'Sessões e Tarefas',
+                icon: 'pi pi-fw pi-calendar',
+                to: '/orientacoes/sessoes',
 
-            //     roles: [
-            //         'ADMIN',
-            //         'ESTUDANTE',
-            //         'ORIENTADOR'
-            //     ]
-            // }
+                roles: [
+                    'ADMIN',
+                    'ESTUDANTE',
+                    'ORIENTADOR'
+                ]
+            }
         ]
     },
 
