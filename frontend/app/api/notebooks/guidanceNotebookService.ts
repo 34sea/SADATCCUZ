@@ -505,3 +505,241 @@ export const getMyNotebooks = async (): Promise<GuidanceNotebook[]> => {
     return response.data.data;
 };
 
+export interface GuidanceBlock2 {
+
+    id: number;
+
+    block_number: number;
+
+    name: string;
+
+    indicators: GuidanceIndicator[];
+}
+
+
+// export interface GuidanceProgress {
+
+//     overall: number;
+
+//     indicators: {
+
+//         total: number;
+
+//         evaluated: number;
+
+//         completed: number;
+
+//         partial: number;
+
+//         not_completed: number;
+
+//         percentage: number;
+
+//     };
+
+//     tasks: {
+
+//         total: number;
+
+//         completed: number;
+
+//         pending: number;
+
+//         in_progress: number;
+
+//         delivered: number;
+
+//         percentage: number;
+
+//     };
+
+    
+// }
+
+export interface GuidanceProgress {
+    overall: number;
+
+    indicators: {
+        total: number;
+        evaluated: number;
+        completed: number;
+        partial: number;
+        not_completed: number;
+        percentage: number;
+    };
+
+    tasks: {
+        total: number;
+        completed: number;
+        pending: number;
+        in_progress: number;
+        delivered: number;
+        percentage: number;
+    };
+}
+
+export interface GuidanceEvaluation {
+
+    id: number;
+
+    session_id: number;
+
+    indicator_id: number;
+
+    status:
+        | 'CUMPRIDO'
+        | 'CUMPRIDO_PARCIALMENTE'
+        | 'NAO_CUMPRIDO';
+
+    observations?: string | null;
+
+    indicator_text: string;
+
+    block_id: number;
+
+    block_number: number;
+
+    block_name: string;
+}
+
+export interface GuidanceSession2 {
+
+    id: number;
+
+    notebook_id: number;
+
+    session_date: string;
+
+    advisor_notes?: string | null;
+
+    created_at: string;
+
+    evaluations?: GuidanceEvaluation[];
+}
+
+// export interface GuidanceNotebook2 {
+
+//     id: number;
+
+//     student_id: number;
+
+//     advisor_id: number;
+
+//     pre_project_id: number;
+
+//     is_completed: number;
+
+//     intermediate_check_passed: number;
+
+//     final_check_passed: number;
+
+//     advisor_declaration_url?: string | null;
+
+//     student_declaration_url?: string | null;
+
+//     created_at: string;
+
+//     student_name?: string;
+
+//     student_email?: string;
+
+//     advisor_name?: string;
+
+//     advisor_email?: string;
+
+//     pre_project_title?: string;
+
+//     pre_project_status?: string;
+
+//     pre_project_thematic_area?: string;
+
+//     pre_project_abstract?: string;
+
+//     sessions?: GuidanceSession2[];
+
+//     tasks?: GuidanceTask[];
+
+//     verifications?: any[];
+
+//     blocks?: GuidanceBlock2[];
+
+//     progress?: GuidanceProgress;
+// }
+
+export interface GuidanceNotebook2 {
+    id: number;
+
+    student_id: number;
+    advisor_id: number;
+    pre_project_id: number;
+
+    is_completed?: number;
+    intermediate_check_passed?: number;
+    final_check_passed?: number;
+
+    advisor_declaration_url?: string | null;
+    student_declaration_url?: string | null;
+
+    student_name?: string;
+    student_email?: string;
+
+    advisor_name?: string;
+    advisor_email?: string;
+
+    pre_project_title?: string;
+    pre_project_status?: string;
+    pre_project_thematic_area?: string;
+    pre_project_abstract?: string;
+
+    created_at?: string;
+    updated_at?: string;
+
+    sessions?: GuidanceSession[];
+    tasks?: GuidanceTask[];
+    declarations?: GuidanceDeclaration[];
+
+    blocks?: GuidanceBlock[];
+
+    verifications?: DepartmentVerification[];
+
+    progress?: GuidanceProgress;
+}
+
+export const getMyStudentNotebook = async (): Promise<GuidanceNotebook2> => {
+
+    const response = await api.get(
+        '/guidance-notebooks/student/me'
+    );
+
+    return response.data.data;
+};
+
+
+
+export interface GuidanceNotebook3 {
+    id: number;
+    student_id: number;
+    advisor_id: number;
+    pre_project_id: number;
+
+    student_name?: string;
+    student_email?: string;
+
+    advisor_name?: string;
+    advisor_email?: string;
+
+    pre_project_title?: string;
+    pre_project_status?: string;
+    pre_project_thematic_area?: string;
+}
+
+export const getNotebookByPreProject = async (
+    preProjectId: number
+): Promise<GuidanceNotebook3> => {
+
+    const response = await api.get(
+        `/guidance-notebooks/pre-project/${preProjectId}`
+    );
+
+    return response.data.data;
+};

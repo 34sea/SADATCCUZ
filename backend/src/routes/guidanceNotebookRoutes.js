@@ -25,6 +25,11 @@ router.get(
     guidanceController.getNotebooksByAdvisor
 );
 
+router.get(
+  '/pre-project/:preProjectId',
+  authMiddleware,
+  guidanceController.getNotebookByPreProject
+);
 
 /**
  * @swagger
@@ -78,6 +83,26 @@ router.get(
     '/blocks',
     authMiddleware,
     guidanceController.getBlocksWithIndicators
+);
+
+/**
+ * @swagger
+ * /api/guidance-notebooks/student/me:
+ *   get:
+ *     summary: Obter o caderno do aluno autenticado
+ *     tags: [Caderno de Orientação]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Caderno do aluno
+ *       404:
+ *         description: Caderno não encontrado
+ */
+router.get(
+    '/student/me',
+    authMiddleware,
+    guidanceController.getMyNotebook
 );
 
 /**

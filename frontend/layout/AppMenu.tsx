@@ -654,39 +654,34 @@ const model: AppMenuItemWithRoles[] = [
 
         items: [
             {
-                label: 'Minhas Sessões',
+                label: 'Progresso',
                 icon: 'pi pi-fw pi-chart-bar',
                 to: '/pages/book/evaluation',
 
                 roles: [
-                    'ADMIN',
-                    'ESTUDANTE',
-                    'ORIENTADOR',
-                    'COORDENADOR_TCC'
+                    
+                    'ESTUDANTE'
                 ]
             },
 
             {
                 label: 'Cadernos',
-                icon: 'pi pi-fw pi-chart-bar',
+               icon: 'pi pi-fw pi-book',
                 to: '/pages/book/notebook',
 
                 roles: [
-                    'ADMIN',
-                    'ESTUDANTE',
-                    'ORIENTADOR',
-                    'COORDENADOR_TCC'
+                    
+                    'ORIENTADOR'
                 ]
             },
 
             {
-                label: 'Sessões e Tarefas',
+                label: 'Defesas',
                 icon: 'pi pi-fw pi-calendar',
-                to: '/orientacoes/sessoes',
+                to: '/pages/book/defense',
 
                 roles: [
-                    'ADMIN',
-                    'ESTUDANTE',
+                
                     'ORIENTADOR'
                 ]
             }
@@ -761,6 +756,18 @@ const model: AppMenuItemWithRoles[] = [
                     'PRESIDENTE_JURI',
                     'OPONENTE',
                     'COORDENADOR_TCC'
+                ]
+            },
+
+            {
+                label: 'Minha de Defesa',
+                icon: 'pi pi-fw pi-calendar-times',
+                to: '/pages/defense/me',
+
+                roles: [
+                    
+                    'ESTUDANTE',
+                    
                 ]
             }
         ]

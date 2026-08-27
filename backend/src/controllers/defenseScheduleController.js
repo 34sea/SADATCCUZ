@@ -76,19 +76,30 @@ exports.createSchedule = async (req, res) => {
     await connection.beginTransaction();
 
     const created_by = req.user.id;
-    const {
-      student_id,
-      notebook_id,
-      tcc_title,
-      defense_date,
-      start_time,
-      end_time,
-      room_id,
-      tcc_document_url,
-      jury_members // Array de objetos: [{ user_id: 1, role_in_jury: 'PRESIDENTE' }, ...]
-    } = req.body;
+    // const {
+    //   student_id,
+    //   notebook_id,
+    //   tcc_title,
+    //   defense_date,
+    //   start_time,
+    //   end_time,
+    //   room_id,
+    //   tcc_document_url,
+    //   jury_members // Array de objetos: [{ user_id: 1, role_in_jury: 'PRESIDENTE' }, ...]
+    // } = req.body;
 
-    if (!student_id || !notebook_id || !tcc_title || !defense_date || !start_time || !end_time || !room_id || !tcc_document_url) {
+    const {
+    student_id,
+    notebook_id,
+    tcc_title,
+    defense_date,
+    start_time,
+    end_time,
+    room_id,
+    jury_members
+} = req.body;
+
+    if (!student_id || !notebook_id || !tcc_title || !defense_date || !start_time || !end_time || !room_id) {
       return res.status(400).json({
         success: false,
         message: 'Preencha todos os campos obrigatórios (student_id, notebook_id, tcc_title, defense_date, start_time, end_time, room_id, tcc_document_url).'
@@ -132,12 +143,64 @@ exports.createSchedule = async (req, res) => {
     }
 
     // 4. Inserir o agendamento da defesa
+    // const [scheduleResult] = await connection.query(
+    // `INSERT INTO defense_schedules (
+    //     student_id,
+    //     notebook_id,
+    //     tcc_title,
+    //     defense_date,
+    //     start_time,
+    //     end_time,
+    //     room_id,
+    //     tcc_document_url,
+    //     status,
+    //     created_by
+    // ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'AGENDADO', ?)`,
+    // [
+    //     student_id,
+    //     notebook_id,
+    //     tcc_title,
+    //     defense_date,
+    //     start_time,
+    //     end_time,
+    //     room_id,
+    //     created_by
+    // ]
+
+    // 4. Inserir o agendamento da defesa
     const [scheduleResult] = await connection.query(
       `INSERT INTO defense_schedules (
-        student_id, notebook_id, tcc_title, defense_date, start_time, end_time, room_id, tcc_document_url, status, created_by
+          student_id,
+          notebook_id,
+          tcc_title,
+          defense_date,
+          start_time,
+          end_time,
+          room_id,
+          tcc_document_url,
+          status,
+          created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AGENDADO', ?)`,
-      [student_id, notebook_id, tcc_title, defense_date, start_time, end_time, room_id, tcc_document_url, created_by]
-    );
+      [
+          student_id,
+          notebook_id,
+          tcc_title,
+          defense_date,
+          start_time,
+          end_time,
+          room_id,
+          '', // Inicializado com string vazia para satisfazer a restrição NOT NULL
+          created_by
+      ]
+    
+);
+    
+    // await connection.query(
+    //   `INSERT INTO defense_schedules (
+    //     student_id, notebook_id, tcc_title, defense_date, start_time, end_time, room_id, tcc_document_url, status, created_by
+    //   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AGENDADO', ?)`,
+    //   [student_id, notebook_id, tcc_title, defense_date, start_time, end_time, room_id, tcc_document_url, created_by]
+    // );
 
     const scheduleId = scheduleResult.insertId;
 
@@ -257,6 +320,73 @@ exports.getScheduleById = async (req, res) => {
   }
 };
 
+exports.getSchedules = async (req, res) => {
+  try {
+    const { defense_date, room_id, status, student_id } = req.query;
+
+    let query = `
+      SELECT ds.id, ds.student_id, ds.notebook_id, ds.tcc_title, ds.defense_date,
+             ds.start_time, ds.end_time, ds.tcc_document_url, ds.status, ds.created_at,
+             u.name AS student_name, u.email AS student_email,
+             r.id AS room_id, r.name AS room_name, r.location AS room_location,
+             cb.name AS created_by_name
+      FROM defense_schedules ds
+      INNER JOIN users u ON ds.student_id = u.id
+      INNER JOIN defense_rooms r ON ds.room_id = r.id
+      INNER JOIN users cb ON ds.created_by = cb.id
+      WHERE 1=1
+    `;
+
+    const params = [];
+
+    if (defense_date) {
+      query += ` AND ds.defense_date = ?`;
+      params.push(defense_date);
+    }
+
+    if (room_id) {
+      query += ` AND ds.room_id = ?`;
+      params.push(room_id);
+    }
+
+    if (status) {
+      query += ` AND ds.status = ?`;
+      params.push(status);
+    }
+
+    if (student_id) {
+      query += ` AND ds.student_id = ?`;
+      params.push(student_id);
+    }
+
+    query += ` ORDER BY ds.defense_date ASC, ds.start_time ASC`;
+
+    const [schedules] = await pool.query(query, params);
+
+    // 👇 COLOCA AQUI
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const schedulesWithUrl = schedules.map(schedule => ({
+      ...schedule,
+      tcc_document_url: schedule.tcc_document_url
+        ? `${baseUrl}/${schedule.tcc_document_url}`
+        : null
+    }));
+
+    // 👇 E TROCA O return antigo por este
+    return res.status(200).json({
+      success: true,
+      data: schedulesWithUrl
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 // Atualizar status ou informações do agendamento
 exports.updateScheduleStatus = async (req, res) => {
   try {
@@ -337,5 +467,498 @@ exports.removeJuryMember = async (req, res) => {
     return res.status(200).json({ success: true, message: 'Membro removido da banca examinadora.' });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// =====================================================
+// CARREGAR DOCUMENTO DA DEFESA
+// =====================================================
+// =====================================================
+// CARREGAR VERSÃO FINAL DA MONOGRAFIA
+// =====================================================
+
+exports.uploadDefenseDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // =====================================================
+    // VERIFICAR ARQUIVO
+    // =====================================================
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selecione um arquivo PDF.'
+      });
+    }
+
+    // =====================================================
+    // VERIFICAR DEFESA
+    // =====================================================
+
+    const [schedules] = await pool.query(
+      `
+      SELECT
+        id,
+        student_id,
+        status,
+        tcc_document_url
+      FROM defense_schedules
+      WHERE id = ?
+      `,
+      [id]
+    );
+
+    if (schedules.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agendamento de defesa não encontrado.'
+      });
+    }
+
+    const schedule = schedules[0];
+
+    // =====================================================
+    // GARANTIR QUE A DEFESA PERTENCE AO ESTUDANTE
+    // =====================================================
+
+    if (Number(schedule.student_id) !== Number(req.user.id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Não tem permissão para carregar o documento desta defesa.'
+      });
+    }
+
+    // =====================================================
+    // VERIFICAR STATUS
+    // =====================================================
+
+    if (schedule.status !== 'AGENDADO') {
+      return res.status(400).json({
+        success: false,
+        message: 'A versão final só pode ser submetida para uma defesa agendada.'
+      });
+    }
+
+    // =====================================================
+    // GARANTIR PDF
+    // =====================================================
+
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({
+        success: false,
+        message: 'Apenas arquivos PDF são permitidos.'
+      });
+    }
+
+    // =====================================================
+    // CAMINHO DO DOCUMENTO
+    // =====================================================
+
+    const documentPath = path
+      .join('uploads', 'pdf', req.file.filename)
+      .replace(/\\/g, '/');
+
+    // =====================================================
+    // ATUALIZAR DEFESA
+    // =====================================================
+
+    await pool.query(
+      `
+      UPDATE defense_schedules
+      SET tcc_document_url = ?
+      WHERE id = ?
+      `,
+      [documentPath, id]
+    );
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Versão final da monografia submetida com sucesso.',
+      data: {
+        id: schedule.id,
+        tcc_document_url: `${baseUrl}/${documentPath}`,
+        filename: req.file.filename
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao carregar versão final:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao carregar a versão final da monografia.',
+      error: error.message
+    });
+  }
+};
+
+// =====================================================
+// CONSULTA DAS DEFESAS AGENDADAS PELO ESTUDANTE
+// =====================================================
+
+exports.getScheduledDefenses = async (req, res) => {
+  try {
+    const {
+      search,
+      defense_date,
+      student_id
+    } = req.query;
+
+    let query = `
+      SELECT
+        ds.id,
+        ds.student_id,
+        ds.notebook_id,
+        ds.tcc_title,
+        ds.defense_date,
+        ds.start_time,
+        ds.end_time,
+        ds.status,
+
+        -- Estudante
+        u.name AS student_name,
+        u.email AS student_email,
+
+        -- Sala
+        r.id AS room_id,
+        r.name AS room_name,
+        r.location AS room_location,
+        r.capacity AS room_capacity
+
+      FROM defense_schedules ds
+
+      INNER JOIN users u
+        ON ds.student_id = u.id
+
+      INNER JOIN defense_rooms r
+        ON ds.room_id = r.id
+
+      WHERE ds.status = 'AGENDADO'
+    `;
+
+    const params = [];
+
+    // =====================================================
+    // PESQUISA POR NOME OU TÍTULO
+    // =====================================================
+
+    if (search) {
+      query += `
+        AND (
+          u.name LIKE ?
+          OR ds.tcc_title LIKE ?
+        )
+      `;
+
+      const searchValue = `%${search}%`;
+
+      params.push(searchValue, searchValue);
+    }
+
+    // =====================================================
+    // FILTRO POR DATA
+    // =====================================================
+
+    if (defense_date) {
+      query += ` AND ds.defense_date = ?`;
+      params.push(defense_date);
+    }
+
+    // =====================================================
+    // FILTRO POR ESTUDANTE
+    // =====================================================
+
+    if (student_id) {
+      query += ` AND ds.student_id = ?`;
+      params.push(student_id);
+    }
+
+    query += `
+      ORDER BY
+        ds.defense_date ASC,
+        ds.start_time ASC
+    `;
+
+    const [defenses] = await pool.query(query, params);
+
+    // =====================================================
+    // BUSCAR BANCAS
+    // =====================================================
+
+    if (defenses.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        total: 0
+      });
+    }
+
+    const defenseIds = defenses.map(defense => defense.id);
+
+    const placeholders = defenseIds.map(() => '?').join(',');
+
+    const [juryMembers] = await pool.query(
+      `
+      SELECT
+        jm.id,
+        jm.defense_schedule_id,
+        jm.user_id,
+        jm.role_in_jury,
+
+        u.name AS member_name,
+        u.email AS member_email
+
+      FROM defense_jury_members jm
+
+      INNER JOIN users u
+        ON jm.user_id = u.id
+
+      WHERE jm.defense_schedule_id IN (${placeholders})
+
+      ORDER BY
+        jm.defense_schedule_id ASC,
+        CASE jm.role_in_jury
+          WHEN 'PRESIDENTE' THEN 1
+          WHEN 'ORIENTADOR' THEN 2
+          WHEN 'OPONENTE' THEN 3
+          ELSE 4
+        END
+      `,
+      defenseIds
+    );
+
+    // =====================================================
+    // AGRUPAR BANCA POR DEFESA
+    // =====================================================
+
+    const juryMap = {};
+
+    juryMembers.forEach(member => {
+      if (!juryMap[member.defense_schedule_id]) {
+        juryMap[member.defense_schedule_id] = [];
+      }
+
+      juryMap[member.defense_schedule_id].push({
+        id: member.id,
+        user_id: member.user_id,
+        name: member.member_name,
+        email: member.member_email,
+        role: member.role_in_jury
+      });
+    });
+
+    // =====================================================
+    // MONTAR RESPOSTA FINAL
+    // =====================================================
+
+    const data = defenses.map(defense => ({
+      id: defense.id,
+
+      student: {
+        id: defense.student_id,
+        name: defense.student_name,
+        email: defense.student_email
+      },
+
+      tcc: {
+        notebook_id: defense.notebook_id,
+        title: defense.tcc_title
+      },
+
+      schedule: {
+        date: defense.defense_date,
+        start_time: defense.start_time,
+        end_time: defense.end_time,
+        status: defense.status
+      },
+
+      room: {
+        id: defense.room_id,
+        name: defense.room_name,
+        location: defense.room_location,
+        capacity: defense.room_capacity
+      },
+
+      jury: juryMap[defense.id] || []
+    }));
+
+    return res.status(200).json({
+      success: true,
+      total: data.length,
+      data
+    });
+
+  } catch (error) {
+    console.error('Erro ao consultar defesas agendadas:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao consultar defesas agendadas.',
+      error: error.message
+    });
+  }
+};
+
+// =====================================================
+// DEFESA DO ESTUDANTE AUTENTICADO
+// =====================================================
+
+exports.getMyDefense = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const [schedules] = await pool.query(
+      `
+      SELECT
+        ds.id,
+        ds.student_id,
+        ds.notebook_id,
+        ds.tcc_title,
+        ds.defense_date,
+        ds.start_time,
+        ds.end_time,
+        ds.tcc_document_url,
+        ds.status,
+        ds.created_at,
+
+        -- Estudante
+        u.name AS student_name,
+        u.email AS student_email,
+
+        -- Sala
+        r.id AS room_id,
+        r.name AS room_name,
+        r.location AS room_location,
+        r.capacity AS room_capacity
+
+      FROM defense_schedules ds
+
+      INNER JOIN users u
+        ON ds.student_id = u.id
+
+      INNER JOIN defense_rooms r
+        ON ds.room_id = r.id
+
+      WHERE ds.student_id = ?
+
+      ORDER BY ds.defense_date DESC, ds.start_time DESC
+
+      LIMIT 1
+      `,
+      [studentId]
+    );
+
+    if (schedules.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Ainda não existe uma defesa agendada para este estudante.',
+        data: null
+      });
+    }
+
+    const defense = schedules[0];
+
+    // =====================================================
+    // BUSCAR BANCA
+    // =====================================================
+
+    const [jury] = await pool.query(
+      `
+      SELECT
+        jm.id,
+        jm.user_id,
+        jm.role_in_jury,
+
+        u.name AS member_name,
+        u.email AS member_email
+
+      FROM defense_jury_members jm
+
+      INNER JOIN users u
+        ON jm.user_id = u.id
+
+      WHERE jm.defense_schedule_id = ?
+
+      ORDER BY
+        CASE jm.role_in_jury
+          WHEN 'PRESIDENTE' THEN 1
+          WHEN 'ORIENTADOR' THEN 2
+          WHEN 'OPONENTE' THEN 3
+          ELSE 4
+        END
+      `,
+      [defense.id]
+    );
+
+    // =====================================================
+    // URL DO DOCUMENTO
+    // =====================================================
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const documentUrl = defense.tcc_document_url
+      ? `${baseUrl}/${defense.tcc_document_url}`
+      : null;
+
+    // =====================================================
+    // RESPOSTA
+    // =====================================================
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: defense.id,
+
+        student: {
+          id: defense.student_id,
+          name: defense.student_name,
+          email: defense.student_email
+        },
+
+        tcc: {
+          notebook_id: defense.notebook_id,
+          title: defense.tcc_title
+        },
+
+        schedule: {
+          date: defense.defense_date,
+          start_time: defense.start_time,
+          end_time: defense.end_time,
+          status: defense.status
+        },
+
+        room: {
+          id: defense.room_id,
+          name: defense.room_name,
+          location: defense.room_location,
+          capacity: defense.room_capacity
+        },
+
+        document: {
+          uploaded: !!defense.tcc_document_url,
+          url: documentUrl
+        },
+
+        jury: jury.map(member => ({
+          id: member.id,
+          user_id: member.user_id,
+          name: member.member_name,
+          email: member.member_email,
+          role: member.role_in_jury
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao consultar defesa do estudante:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao consultar defesa do estudante.',
+      error: error.message
+    });
   }
 };

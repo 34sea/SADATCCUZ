@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const defenseController = require('../controllers/defenseScheduleController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const uploadPdf = require('../config/multerPdf');
 
 /**
  * @swagger
@@ -59,6 +60,13 @@ const authMiddleware = require('../middlewares/authMiddleware');
 router.route('/rooms')
   .get(authMiddleware, defenseController.getRooms)
   .post(authMiddleware, defenseController.createRoom);
+
+
+router.get(
+  '/my-defense',
+  authMiddleware,
+  defenseController.getMyDefense
+);
 
 /**
  * @swagger
@@ -188,10 +196,22 @@ router.put('/rooms/:id', authMiddleware, defenseController.updateRoom);
  *       400:
  *         description: Conflito de horário/sala ou utilizador já agendado
  */
+
+router.get(
+  '/scheduled',
+  defenseController.getScheduledDefenses
+);
+
 router.route('/schedules')
   .get(authMiddleware, defenseController.getSchedules)
   .post(authMiddleware, defenseController.createSchedule);
 
+router.post(
+  '/schedules/:id/document',
+  authMiddleware,
+  uploadPdf.single('tcc_document'),
+  defenseController.uploadDefenseDocument
+);
 /**
  * @swagger
  * /api/defenses/schedules/{id}:

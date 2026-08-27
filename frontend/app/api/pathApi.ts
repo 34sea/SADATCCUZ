@@ -10,6 +10,9 @@ const pathUrls = {
   'preProjects':"/pre-projects",
   'guidanceNotebooks': '/guidance-notebooks',
   'tasks': '/guidance-notebooks',
+  'defenses': '/defenses/schedules',
+  'scheduled': '/defenses/scheduled',
+  'rooms': '/defenses/rooms',
 }
 
 

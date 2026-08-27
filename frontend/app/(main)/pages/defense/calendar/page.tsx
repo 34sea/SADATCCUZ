@@ -1,875 +1,590 @@
 'use client';
+import { useEffect, useState } from 'react';
+import { getScheduledDefenses, ScheduledDefense } from '@/app/api/scheduleDefense/scheduleDefense';
 
-import React, { useState } from 'react';
-import { Button } from 'primereact/button';
-import { Calendar } from 'primereact/calendar';
-import { Card } from 'primereact/card';
-import { Dropdown } from 'primereact/dropdown';
-import { Tag } from 'primereact/tag';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import { Dialog } from 'primereact/dialog';
-import { Divider } from 'primereact/divider';
+// import {
+//     getScheduledDefenses,
+//     ScheduledDefense
+// } from '../services/defenseService';
 
-interface Defense {
-    id: number;
-    student: string;
-    title: string;
-    course: string;
-    advisor: string;
-    date: Date;
-    time: string;
-    room: string;
-    status: string;
-    jury: string[];
-}
+export default function ScheduledDefenses() {
 
-const AcademicDefenseCalendar = () => {
+    const [defenses, setDefenses] = useState<ScheduledDefense[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-    const [selectedAdvisor, setSelectedAdvisor] = useState<string | null>(null);
-    const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
+    const [date, setDate] = useState('');
 
-    const [selectedDefense, setSelectedDefense] = useState<Defense | null>(null);
-    const [dialogVisible, setDialogVisible] = useState(false);
+    // =====================================================
+    // CARREGAR DEFESAS
+    // =====================================================
 
-    const defenses: Defense[] = [
-        {
-            id: 1,
-            student: 'João Manuel',
-            title: 'Sistema de gestão digital do ciclo de vida do TCC',
-            course: 'Engenharia Informática',
-            advisor: 'Mestre Cristian Franklin Coulon',
-            date: new Date(2026, 7, 20),
-            time: '09:00',
-            room: 'Sala de Defesas 01',
-            status: 'Agendada',
-            jury: [
-                'Mestre Cristian Franklin Coulon',
-                'Dr. António Manuel',
-                'Mestre Carlos Domingos'
-            ]
-        },
-        {
-            id: 2,
-            student: 'Maria da Conceição',
-            title: 'Sistema inteligente de acompanhamento académico',
-            course: 'Engenharia Informática',
-            advisor: 'Dra. Maria José',
-            date: new Date(2026, 7, 20),
-            time: '11:00',
-            room: 'Sala de Defesas 02',
-            status: 'Agendada',
-            jury: [
-                'Dra. Maria José',
-                'Mestre Paulo Alberto',
-                'Dr. António Manuel'
-            ]
-        },
-        {
-            id: 3,
-            student: 'Carlos Alberto',
-            title: 'Aplicação móvel para gestão de processos académicos',
-            course: 'Engenharia Informática',
-            advisor: 'Mestre Carlos Domingos',
-            date: new Date(2026, 7, 21),
-            time: '09:00',
-            room: 'Auditório FCT',
-            status: 'Concluída',
-            jury: [
-                'Mestre Carlos Domingos',
-                'Dra. Maria José',
-                'Mestre Paulo Alberto'
-            ]
-        },
-        {
-            id: 4,
-            student: 'Ana Paula',
-            title: 'Plataforma web para gestão universitária',
-            course: 'Engenharia Informática',
-            advisor: 'Mestre Paulo Alberto',
-            date: new Date(2026, 7, 22),
-            time: '14:00',
-            room: 'Sala de Defesas 01',
-            status: 'Agendada',
-            jury: [
-                'Mestre Paulo Alberto',
-                'Dr. António Manuel',
-                'Mestre Carlos Domingos'
-            ]
+    const loadDefenses = async () => {
+
+        try {
+
+            setLoading(true);
+            setError(null);
+
+            const response = await getScheduledDefenses({
+                search: search || undefined,
+                defense_date: date || undefined
+            });
+
+            if (response.success) {
+                setDefenses(response.data);
+            } else {
+                setDefenses([]);
+            }
+
+        } catch (err: any) {
+
+            console.error('Erro ao carregar defesas:', err);
+
+            setError(
+                err?.response?.data?.message ||
+                'Não foi possível carregar as defesas.'
+            );
+
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
-    const courses = [
-        { label: 'Engenharia Informática', value: 'Engenharia Informática' },
-        { label: 'Gestão Portuária', value: 'Gestão Portuária' }
-    ];
+    // =====================================================
+    // PRIMEIRO CARREGAMENTO
+    // =====================================================
 
-    const advisors = [
-        {
-            label: 'Mestre Cristian Franklin Coulon',
-            value: 'Mestre Cristian Franklin Coulon'
-        },
-        {
-            label: 'Dra. Maria José',
-            value: 'Dra. Maria José'
-        },
-        {
-            label: 'Mestre Carlos Domingos',
-            value: 'Mestre Carlos Domingos'
-        },
-        {
-            label: 'Mestre Paulo Alberto',
-            value: 'Mestre Paulo Alberto'
+    useEffect(() => {
+        loadDefenses();
+    }, []);
+
+    // =====================================================
+    // PESQUISAR
+    // =====================================================
+
+    const handleSearch = () => {
+        loadDefenses();
+    };
+
+    // =====================================================
+    // ENTER NA PESQUISA
+    // =====================================================
+
+    const handleKeyDown = (
+        event: React.KeyboardEvent<HTMLInputElement>
+    ) => {
+
+        if (event.key === 'Enter') {
+            loadDefenses();
         }
-    ];
+    };
 
-    const statuses = [
-        { label: 'Agendada', value: 'Agendada' },
-        { label: 'Concluída', value: 'Concluída' },
-        { label: 'Cancelada', value: 'Cancelada' }
-    ];
+    // =====================================================
+    // FORMATAR DATA
+    // =====================================================
 
-    const filteredDefenses = defenses.filter((defense) => {
+    const formatDate = (date: string) => {
 
-        const courseMatch =
-            !selectedCourse ||
-            defense.course === selectedCourse;
+        if (!date) return '-';
 
-        const advisorMatch =
-            !selectedAdvisor ||
-            defense.advisor === selectedAdvisor;
+        const [year, month, day] = date.split('T')[0].split('-');
 
-        const statusMatch =
-            !selectedStatus ||
-            defense.status === selectedStatus;
+        return `${day}/${month}/${year}`;
+    };
 
-        const dateMatch =
-            !selectedDate ||
-            defense.date.toDateString() === selectedDate.toDateString();
+    // =====================================================
+    // FORMATAR HORA
+    // =====================================================
 
-        return courseMatch &&
-            advisorMatch &&
-            statusMatch &&
-            dateMatch;
-    });
+    const formatTime = (time: string) => {
 
-    const statusTemplate = (rowData: Defense) => {
+        if (!time) return '-';
 
-        let severity:
-            | 'success'
-            | 'warning'
-            | 'danger'
-            | 'info'
-            | undefined;
+        return time.substring(0, 5);
+    };
 
-        if (rowData.status === 'Agendada') {
-            severity = 'info';
+    // =====================================================
+    // ROLE
+    // =====================================================
+
+    const getRoleLabel = (role: string) => {
+
+        switch (role) {
+
+            case 'PRESIDENTE':
+                return 'Presidente';
+
+            case 'ORIENTADOR':
+                return 'Orientador';
+
+            case 'OPONENTE':
+                return 'Oponente';
+
+            default:
+                return role;
         }
+    };
 
-        if (rowData.status === 'Concluída') {
-            severity = 'success';
-        }
+    // =====================================================
+    // LOADING
+    // =====================================================
 
-        if (rowData.status === 'Cancelada') {
-            severity = 'danger';
-        }
+    if (loading) {
 
         return (
-            <Tag
-                value={rowData.status}
-                severity={severity}
-            />
-        );
-    };
-
-    const dateTemplate = (rowData: Defense) => {
-        return rowData.date.toLocaleDateString('pt-PT');
-    };
-
-    const actionTemplate = (rowData: Defense) => {
-
-        return (
-            <Button
-                icon="pi pi-eye"
-                rounded
-                text
-                tooltip="Ver detalhes"
-                tooltipOptions={{ position: 'top' }}
-                onClick={() => {
-                    setSelectedDefense(rowData);
-                    setDialogVisible(true);
-                }}
-            />
-        );
-    };
-
-    const clearFilters = () => {
-        setSelectedDate(null);
-        setSelectedCourse(null);
-        setSelectedAdvisor(null);
-        setSelectedStatus(null);
-    };
-
-    const calendarDateTemplate = (date: any) => {
-
-        const currentDate = new Date(
-            date.year,
-            date.month,
-            date.day
-        );
-
-        const hasDefense = defenses.some(
-            (defense) =>
-                defense.date.toDateString() === currentDate.toDateString()
-        );
-
-        return (
-            <div
-                className={
-                    hasDefense
-                        ? 'flex align-items-center justify-content-center border-circle bg-primary text-white'
-                        : ''
-                }
-                style={{
-                    width: '2rem',
-                    height: '2rem'
-                }}
-            >
-                {date.day}
+            <div className="flex justify-content-center align-items-center p-5">
+                <i className="pi pi-spin pi-spinner text-3xl"></i>
             </div>
         );
-    };
+    }
+
+    // =====================================================
+    // RENDER
+    // =====================================================
 
     return (
-        <div className="grid">
 
-            {/* CABEÇALHO */}
-            <div className="col-12">
+        <div className="surface-ground min-h-screen p-3 md:p-5">
 
-                <div className="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
+            {/* =================================================
+                HEADER
+            ================================================= */}
 
-                    <div>
-                        <h2 className="text-900 font-semibold m-0">
-                            Calendário Académico de Defesas
-                        </h2>
+            <div className="mb-4">
 
-                        <p className="text-600 mt-2 mb-0">
-                            Consulte e acompanhe as defesas públicas agendadas.
-                        </p>
+                <h1 className="text-3xl font-bold text-900 m-0">
+                    Defesas de TCC
+                </h1>
+
+                <p className="text-600 mt-2">
+                    Consulte as defesas agendadas, datas, salas e bancas examinadoras.
+                </p>
+
+            </div>
+
+
+            {/* =================================================
+                PESQUISA
+            ================================================= */}
+
+            <div className="surface-card border-round-xl shadow-1 p-3 mb-4">
+
+                <div className="grid">
+
+                    {/* Pesquisa */}
+
+                    <div className="col-12 md:col-7">
+
+                        <label className="block font-medium text-900 mb-2">
+                            Pesquisar
+                        </label>
+
+                        <span className="p-input-icon-left w-full">
+
+                            <i className="pi pi-search" />
+
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Nome do estudante ou título do TCC..."
+                                className="p-inputtext p-component w-full"
+                            />
+
+                        </span>
+
                     </div>
 
-                    <Button
-                        label="Nova Defesa"
-                        icon="pi pi-calendar-plus"
-                        outlined
-                        onClick={() => {
-                            window.location.href =
-                                '/pages/defesas/agendamento';
-                        }}
-                    />
 
-                </div>
+                    {/* Data */}
 
-            </div>
+                    <div className="col-12 md:col-3">
 
-            {/* =========================================================
-    CARDS DE RESUMO
-========================================================= */}
+                        <label className="block font-medium text-900 mb-2">
+                            Data da defesa
+                        </label>
 
-<div className="col-12 lg:col-6 xl:col-3">
-
-    <div className="card mb-0 h-full">
-
-        <div className="flex justify-content-between align-items-start">
-
-            <div>
-
-                <span className="block text-500 font-medium mb-2">
-                    Total de defesas
-                </span>
-
-                <div className="text-900 font-medium text-2xl">
-                    {defenses.length}
-                </div>
-
-                <span className="text-500 text-sm">
-                    Registadas no sistema
-                </span>
-
-            </div>
-
-            <div
-                className="flex align-items-center justify-content-center bg-blue-100 border-round"
-                style={{
-                    width: '2.5rem',
-                    height: '2.5rem'
-                }}
-            >
-                <i className="pi pi-calendar text-blue-500 text-xl" />
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<div className="col-12 lg:col-6 xl:col-3">
-
-    <div className="card mb-0 h-full">
-
-        <div className="flex justify-content-between align-items-start">
-
-            <div>
-
-                <span className="block text-500 font-medium mb-2">
-                    Agendadas
-                </span>
-
-                <div className="text-900 font-medium text-2xl">
-                    {
-                        defenses.filter(
-                            d => d.status === 'Agendada'
-                        ).length
-                    }
-                </div>
-
-                <span className="text-500 text-sm">
-                    Por realizar
-                </span>
-
-            </div>
-
-            <div
-                className="flex align-items-center justify-content-center bg-cyan-100 border-round"
-                style={{
-                    width: '2.5rem',
-                    height: '2.5rem'
-                }}
-            >
-                <i className="pi pi-clock text-cyan-500 text-xl" />
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<div className="col-12 lg:col-6 xl:col-3">
-
-    <div className="card mb-0 h-full">
-
-        <div className="flex justify-content-between align-items-start">
-
-            <div>
-
-                <span className="block text-500 font-medium mb-2">
-                    Concluídas
-                </span>
-
-                <div className="text-900 font-medium text-2xl">
-                    {
-                        defenses.filter(
-                            d => d.status === 'Concluída'
-                        ).length
-                    }
-                </div>
-
-                <span className="text-500 text-sm">
-                    Defesas realizadas
-                </span>
-
-            </div>
-
-            <div
-                className="flex align-items-center justify-content-center bg-green-100 border-round"
-                style={{
-                    width: '2.5rem',
-                    height: '2.5rem'
-                }}
-            >
-                <i className="pi pi-check-circle text-green-500 text-xl" />
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<div className="col-12 lg:col-6 xl:col-3">
-
-    <div className="card mb-0 h-full">
-
-        <div className="flex justify-content-between align-items-start">
-
-            <div>
-
-                <span className="block text-500 font-medium mb-2">
-                    Este mês
-                </span>
-
-                <div className="text-900 font-medium text-2xl">
-                    {
-                        defenses.filter((defense) => {
-                            const now = new Date();
-
-                            return (
-                                defense.date.getMonth() === now.getMonth() &&
-                                defense.date.getFullYear() === now.getFullYear()
-                            );
-                        }).length
-                    }
-                </div>
-
-                <span className="text-500 text-sm">
-                    Defesas previstas
-                </span>
-
-            </div>
-
-            <div
-                className="flex align-items-center justify-content-center bg-orange-100 border-round"
-                style={{
-                    width: '2.5rem',
-                    height: '2.5rem'
-                }}
-            >
-                <i className="pi pi-calendar-plus text-orange-500 text-xl" />
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-            {/* CALENDÁRIO */}
-            {/* =========================================================
-    CALENDÁRIO
-========================================================= */}
-
-<div className="col-12 lg:col-4">
-
-    <div className="card h-full">
-
-        <div className="flex align-items-center justify-content-between mb-4">
-
-            <div>
-                <h5 className="m-0 text-900">
-                    Calendário
-                </h5>
-
-                <span className="text-500 text-sm">
-                    Consulte as datas das defesas
-                </span>
-            </div>
-
-            <i className="pi pi-calendar text-primary text-xl" />
-
-        </div>
-
-        <div className="flex justify-content-center">
-
-            <Calendar
-                value={selectedDate}
-                onChange={(e) =>
-                    setSelectedDate(e.value as Date)
-                }
-                inline
-                dateTemplate={calendarDateTemplate}
-            />
-
-        </div>
-
-        <Divider />
-
-        <div className="flex align-items-center gap-2">
-
-            <span
-                className="border-circle bg-primary"
-                style={{
-                    width: '0.65rem',
-                    height: '0.65rem'
-                }}
-            />
-
-            <span className="text-500 text-sm">
-                Defesa agendada
-            </span>
-
-        </div>
-
-    </div>
-
-</div>
-
-            {/* FILTROS */}
-            {/* =========================================================
-    FILTROS
-========================================================= */}
-
-<div className="col-12 lg:col-8">
-
-    <div className="card h-full">
-
-        <div className="flex align-items-center justify-content-between mb-4">
-
-            <div>
-
-                <h5 className="m-0 text-900">
-                    Pesquisa e filtros
-                </h5>
-
-                <span className="text-500 text-sm">
-                    Filtre as defesas por diferentes critérios
-                </span>
-
-            </div>
-
-            <i className="pi pi-filter text-primary text-xl" />
-
-        </div>
-
-        <div className="grid">
-
-            <div className="col-12 md:col-6">
-
-                <label className="block text-900 font-medium mb-2">
-                    Curso
-                </label>
-
-                <Dropdown
-                    value={selectedCourse}
-                    onChange={(e) =>
-                        setSelectedCourse(e.value)
-                    }
-                    options={courses}
-                    placeholder="Todos os cursos"
-                    className="w-full"
-                    showClear
-                />
-
-            </div>
-
-            <div className="col-12 md:col-6">
-
-                <label className="block text-900 font-medium mb-2">
-                    Orientador
-                </label>
-
-                <Dropdown
-                    value={selectedAdvisor}
-                    onChange={(e) =>
-                        setSelectedAdvisor(e.value)
-                    }
-                    options={advisors}
-                    placeholder="Todos os orientadores"
-                    className="w-full"
-                    showClear
-                    filter
-                />
-
-            </div>
-
-            <div className="col-12 md:col-6">
-
-                <label className="block text-900 font-medium mb-2">
-                    Estado
-                </label>
-
-                <Dropdown
-                    value={selectedStatus}
-                    onChange={(e) =>
-                        setSelectedStatus(e.value)
-                    }
-                    options={statuses}
-                    placeholder="Todos os estados"
-                    className="w-full"
-                    showClear
-                />
-
-            </div>
-
-            <div className="col-12 md:col-6 flex align-items-end">
-
-                <Button
-                    label="Limpar filtros"
-                    icon="pi pi-filter-slash"
-                    outlined
-                    className="w-full"
-                    onClick={clearFilters}
-                />
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-            {/* LISTA DE DEFESAS */}
-            <div className="col-12">
-
-                <Card>
-
-                    <div className="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-2 mb-4">
-
-                        <div>
-                            <h5 className="m-0 text-900">
-                                Defesas Agendadas
-                            </h5>
-
-                            <span className="text-500 text-sm">
-                                {filteredDefenses.length} defesa(s) encontrada(s)
-                            </span>
-                        </div>
-
-                        <Button
-                            icon="pi pi-refresh"
-                            label="Actualizar"
-                            outlined
-                            size="small"
-                            onClick={() => window.location.reload()}
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="p-inputtext p-component w-full"
                         />
 
                     </div>
 
-                    <DataTable
-                        value={filteredDefenses}
-                        paginator
-                        rows={5}
-                        responsiveLayout="scroll"
-                        emptyMessage="Nenhuma defesa encontrada."
-                        stripedRows
-                        showGridlines
+
+                    {/* Botão */}
+
+                    <div className="col-12 md:col-2 flex align-items-end">
+
+                        <button
+                            type="button"
+                            onClick={handleSearch}
+                            className="p-button p-component w-full"
+                        >
+
+                            <i className="pi pi-search mr-2"></i>
+
+                            Pesquisar
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* =================================================
+                ERRO
+            ================================================= */}
+
+            {error && (
+
+                <div className="p-message p-message-error mb-4">
+
+                    <i className="pi pi-exclamation-circle mr-2"></i>
+
+                    {error}
+
+                </div>
+
+            )}
+
+
+            {/* =================================================
+                RESULTADOS
+            ================================================= */}
+
+            <div className="flex justify-content-between align-items-center mb-3">
+
+                <div>
+
+                    <span className="text-xl font-semibold text-900">
+                        Defesas agendadas
+                    </span>
+
+                    <span className="ml-2 text-600">
+                        ({defenses.length})
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            {/* =================================================
+                SEM RESULTADOS
+            ================================================= */}
+
+            {defenses.length === 0 && (
+
+                <div className="surface-card border-round-xl shadow-1 p-6 text-center">
+
+                    <i className="pi pi-calendar-times text-5xl text-400"></i>
+
+                    <h3 className="text-900 mt-3">
+                        Nenhuma defesa encontrada
+                    </h3>
+
+                    <p className="text-600">
+                        Não existem defesas agendadas para os critérios informados.
+                    </p>
+
+                </div>
+
+            )}
+
+
+            {/* =================================================
+                LISTA
+            ================================================= */}
+
+            <div className="grid">
+
+                {defenses.map((defense) => (
+
+                    <div
+                        key={defense.id}
+                        className="col-12"
                     >
 
-                        <Column
-                            field="student"
-                            header="Estudante"
-                            sortable
-                        />
+                        <div className="surface-card border-round-xl shadow-1 overflow-hidden">
 
-                        <Column
-                            field="title"
-                            header="Título do TCC"
-                            body={(rowData: Defense) => (
-                                <span
-                                    className="block"
-                                    style={{
-                                        maxWidth: '300px'
-                                    }}
-                                >
-                                    {rowData.title}
-                                </span>
-                            )}
-                        />
+                            {/* =================================================
+                                TOPO
+                            ================================================= */}
 
-                        <Column
-                            field="advisor"
-                            header="Orientador"
-                            sortable
-                        />
+                            <div className="p-4 border-bottom-1 surface-border">
 
-                        <Column
-                            field="date"
-                            header="Data"
-                            body={dateTemplate}
-                            sortable
-                        />
+                                <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-start gap-3">
 
-                        <Column
-                            field="time"
-                            header="Hora"
-                            sortable
-                        />
+                                    <div>
 
-                        <Column
-                            field="room"
-                            header="Sala"
-                        />
+                                        <div className="text-sm text-600 mb-1">
+                                            ESTUDANTE
+                                        </div>
 
-                        <Column
-                            field="status"
-                            header="Estado"
-                            body={statusTemplate}
-                        />
+                                        <h2 className="text-xl font-bold text-900 m-0">
+                                            {defense.student.name}
+                                        </h2>
 
-                        <Column
-                            header="Acções"
-                            body={actionTemplate}
-                            style={{
-                                width: '5rem'
-                            }}
-                        />
+                                        <div className="text-600 mt-1">
+                                            {defense.student.email}
+                                        </div>
 
-                    </DataTable>
+                                    </div>
 
-                </Card>
 
-            </div>
+                                    <span className="p-tag p-component p-tag-success">
 
-            {/* DIALOG DETALHES */}
-            <Dialog
-                header="Detalhes da Defesa"
-                visible={dialogVisible}
-                style={{
-                    width: '600px',
-                    maxWidth: '95vw'
-                }}
-                onHide={() => setDialogVisible(false)}
-            >
+                                        <i className="pi pi-check-circle mr-2"></i>
 
-                {selectedDefense && (
+                                        Defesa agendada
 
-                    <div className="flex flex-column gap-4">
+                                    </span>
 
-                        <div>
-
-                            <span className="text-500 text-sm block mb-1">
-                                Estudante
-                            </span>
-
-                            <span className="text-900 font-medium">
-                                {selectedDefense.student}
-                            </span>
-
-                        </div>
-
-                        <div>
-
-                            <span className="text-500 text-sm block mb-1">
-                                Título do TCC
-                            </span>
-
-                            <span className="text-900 font-medium line-height-3">
-                                {selectedDefense.title}
-                            </span>
-
-                        </div>
-
-                        <div className="grid">
-
-                            <div className="col-6">
-
-                                <span className="text-500 text-sm block mb-1">
-                                    Data
-                                </span>
-
-                                <span className="text-900 font-medium">
-                                    {selectedDefense.date.toLocaleDateString('pt-PT')}
-                                </span>
+                                </div>
 
                             </div>
 
-                            <div className="col-6">
 
-                                <span className="text-500 text-sm block mb-1">
-                                    Hora
-                                </span>
+                            {/* =================================================
+                                INFORMAÇÕES
+                            ================================================= */}
 
-                                <span className="text-900 font-medium">
-                                    {selectedDefense.time}
-                                </span>
+                            <div className="p-4">
 
-                            </div>
+                                <div className="grid">
 
-                            <div className="col-6">
+                                    {/* TCC */}
 
-                                <span className="text-500 text-sm block mb-1">
-                                    Sala
-                                </span>
+                                    <div className="col-12">
 
-                                <span className="text-900 font-medium">
-                                    {selectedDefense.room}
-                                </span>
+                                        <div className="flex gap-3">
 
-                            </div>
+                                            <div className="flex align-items-center justify-content-center border-round bg-primary-50 w-3rem h-3rem">
 
-                            <div className="col-6">
+                                                <i className="pi pi-book text-primary text-xl"></i>
 
-                                <span className="text-500 text-sm block mb-1">
-                                    Estado
-                                </span>
+                                            </div>
 
-                                {statusTemplate(selectedDefense)}
+                                            <div>
 
-                            </div>
+                                                <div className="text-sm text-600">
+                                                    Título do TCC
+                                                </div>
 
-                        </div>
+                                                <div className="font-semibold text-900 mt-1">
+                                                    {defense.tcc.title}
+                                                </div>
 
-                        <Divider />
-
-                        <div>
-
-                            <span className="text-500 text-sm block mb-2">
-                                Composição do Júri
-                            </span>
-
-                            <div className="flex flex-column gap-2">
-
-                                {selectedDefense.jury.map(
-                                    (member, index) => (
-
-                                        <div
-                                            key={index}
-                                            className="flex align-items-center gap-2"
-                                        >
-
-                                            <i className="pi pi-user text-primary" />
-
-                                            <span className="text-900">
-                                                {member}
-                                            </span>
+                                            </div>
 
                                         </div>
 
-                                    )
-                                )}
+                                    </div>
+
+
+                                    {/* DATA */}
+
+                                    <div className="col-12 md:col-4">
+
+                                        <div className="flex gap-3">
+
+                                            <div className="flex align-items-center justify-content-center border-round bg-blue-50 w-3rem h-3rem">
+
+                                                <i className="pi pi-calendar text-blue-500 text-xl"></i>
+
+                                            </div>
+
+                                            <div>
+
+                                                <div className="text-sm text-600">
+                                                    Data
+                                                </div>
+
+                                                <div className="font-semibold text-900 mt-1">
+                                                    {formatDate(defense.schedule.date)}
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {/* HORA */}
+
+                                    <div className="col-12 md:col-4">
+
+                                        <div className="flex gap-3">
+
+                                            <div className="flex align-items-center justify-content-center border-round bg-orange-50 w-3rem h-3rem">
+
+                                                <i className="pi pi-clock text-orange-500 text-xl"></i>
+
+                                            </div>
+
+                                            <div>
+
+                                                <div className="text-sm text-600">
+                                                    Horário
+                                                </div>
+
+                                                <div className="font-semibold text-900 mt-1">
+
+                                                    {formatTime(
+                                                        defense.schedule.start_time
+                                                    )}
+
+                                                    {' - '}
+
+                                                    {formatTime(
+                                                        defense.schedule.end_time
+                                                    )}
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {/* SALA */}
+
+                                    <div className="col-12 md:col-4">
+
+                                        <div className="flex gap-3">
+
+                                            <div className="flex align-items-center justify-content-center border-round bg-purple-50 w-3rem h-3rem">
+
+                                                <i className="pi pi-building text-purple-500 text-xl"></i>
+
+                                            </div>
+
+                                            <div>
+
+                                                <div className="text-sm text-600">
+                                                    Sala
+                                                </div>
+
+                                                <div className="font-semibold text-900 mt-1">
+                                                    {defense.room.name}
+                                                </div>
+
+                                                {defense.room.location && (
+
+                                                    <div className="text-sm text-600 mt-1">
+                                                        {defense.room.location}
+                                                    </div>
+
+                                                )}
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                {/* =================================================
+                                    BANCA
+                                ================================================= */}
+
+                                <div className="border-top-1 surface-border mt-3 pt-4">
+
+                                    <div className="flex align-items-center gap-2 mb-3">
+
+                                        <i className="pi pi-users text-primary text-xl"></i>
+
+                                        <span className="font-bold text-lg text-900">
+                                            Banca examinadora
+                                        </span>
+
+                                    </div>
+
+
+                                    {defense.jury.length === 0 ? (
+
+                                        <div className="text-600 text-sm">
+                                            Banca ainda não definida.
+                                        </div>
+
+                                    ) : (
+
+                                        <div className="grid">
+
+                                            {defense.jury.map((member) => (
+
+                                                <div
+                                                    key={member.id}
+                                                    className="col-12 md:col-4"
+                                                >
+
+                                                    <div className="surface-ground border-round-lg p-3 h-full">
+
+                                                        <div className="flex align-items-center gap-3">
+
+                                                            <div className="flex align-items-center justify-content-center border-circle bg-primary text-white w-3rem h-3rem">
+
+                                                                <i className="pi pi-user"></i>
+
+                                                            </div>
+
+
+                                                            <div className="min-w-0">
+
+                                                                <div className="font-semibold text-900">
+
+                                                                    {member.name}
+
+                                                                </div>
+
+                                                                <div className="text-sm text-primary font-medium mt-1">
+
+                                                                    {getRoleLabel(
+                                                                        member.role
+                                                                    )}
+
+                                                                </div>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+
+                                            ))}
+
+                                        </div>
+
+                                    )}
+
+                                </div>
 
                             </div>
 
                         </div>
 
-                        <Divider />
-
-                        <div className="flex justify-content-end gap-2">
-
-                            <Button
-                                label="Fechar"
-                                icon="pi pi-times"
-                                outlined
-                                onClick={() =>
-                                    setDialogVisible(false)
-                                }
-                            />
-
-                            <Button
-                                label="Ver TCC"
-                                icon="pi pi-file"
-                                onClick={() => {
-                                    // Implementar navegação para o documento
-                                }}
-                            />
-
-                        </div>
-
                     </div>
 
-                )}
+                ))}
 
-            </Dialog>
+            </div>
 
         </div>
     );
-};
-
-export default AcademicDefenseCalendar;
+}
