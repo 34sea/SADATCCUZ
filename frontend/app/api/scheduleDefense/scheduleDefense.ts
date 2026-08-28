@@ -609,7 +609,8 @@ export async function uploadDefenseDocument2(
 ) {
     const formData = new FormData();
 
-    formData.append('document', file);
+    // formData.append('document', file);
+    formData.append('tcc_document', file);
 
     const response = await api.post(
         `/defenses/schedules/${defenseId}/document`,

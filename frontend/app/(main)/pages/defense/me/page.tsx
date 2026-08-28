@@ -1,44 +1,49 @@
 'use client';
-import { getMyDefense, StudentDefense, uploadDefenseDocument2 } from '@/app/api/scheduleDefense/scheduleDefense';
+
 import React, { useEffect, useRef, useState } from 'react';
-// import {
-//     getMyDefense,
-//     uploadDefenseDocument,
-//     StudentDefense
-// } from '../../services/defenseService';
 
 import {
-    Calendar,
-    Clock,
-    MapPin,
-    Users,
-    FileText,
-    Upload,
-    CheckCircle2,
-    AlertCircle,
-    Download,
-    UserRound,
-    Loader2
-} from 'lucide-react';
+    getMyDefense,
+    StudentDefense,
+    uploadDefenseDocument2
+} from '@/app/api/scheduleDefense/scheduleDefense';
+
+import { Card } from 'primereact/card';
+import { Divider } from 'primereact/divider';
+import { Tag } from 'primereact/tag';
+import { Button } from 'primereact/button';
+import { Skeleton } from 'primereact/skeleton';
+import { Message } from 'primereact/message';
 
 const DefensePage: React.FC = () => {
 
-    const [defense, setDefense] = useState<StudentDefense | null>(null);
+    const [defense, setDefense] =
+        useState<StudentDefense | null>(null);
 
-    const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
+    const [loading, setLoading] =
+        useState(true);
 
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
+    const [uploading, setUploading] =
+        useState(false);
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [error, setError] =
+        useState<string | null>(null);
+
+    const [success, setSuccess] =
+        useState<string | null>(null);
+
+    const fileInputRef =
+        useRef<HTMLInputElement>(null);
+
 
     // =====================================================
     // CARREGAR DEFESA
     // =====================================================
 
     const loadDefense = async () => {
+
         try {
+
             setLoading(true);
             setError(null);
 
@@ -48,7 +53,10 @@ const DefensePage: React.FC = () => {
 
         } catch (err: any) {
 
-            console.error(err);
+            console.error(
+                'Erro ao carregar defesa:',
+                err
+            );
 
             setError(
                 err?.response?.data?.message ||
@@ -56,21 +64,30 @@ const DefensePage: React.FC = () => {
             );
 
         } finally {
+
             setLoading(false);
+
         }
     };
 
+
     useEffect(() => {
+
         loadDefense();
+
     }, []);
 
+
     // =====================================================
-    // SELECIONAR PDF
+    // SELECIONAR FICHEIRO
     // =====================================================
 
     const handleSelectFile = () => {
+
         fileInputRef.current?.click();
+
     };
+
 
     // =====================================================
     // UPLOAD
@@ -82,36 +99,56 @@ const DefensePage: React.FC = () => {
 
         const file = event.target.files?.[0];
 
-        if (!file) return;
+        if (!file) {
+            return;
+        }
 
         setError(null);
         setSuccess(null);
 
-        // Validar tipo
-        if (file.type !== 'application/pdf') {
+
+        // -------------------------------------------------
+        // VALIDAR PDF
+        // -------------------------------------------------
+
+        if (
+            file.type !== 'application/pdf' &&
+            !file.name.toLowerCase().endsWith('.pdf')
+        ) {
 
             setError(
-                'Apenas arquivos PDF são permitidos.'
+                'Apenas ficheiros PDF são permitidos.'
             );
 
             event.target.value = '';
+
             return;
         }
 
-        // Validar tamanho - 10MB
-        const maxSize = 10 * 1024 * 1024;
+
+        // -------------------------------------------------
+        // VALIDAR TAMANHO
+        // -------------------------------------------------
+
+        const maxSize =
+            10 * 1024 * 1024;
 
         if (file.size > maxSize) {
 
             setError(
-                'O arquivo não pode ultrapassar 10 MB.'
+                'O ficheiro não pode ultrapassar 10 MB.'
             );
 
             event.target.value = '';
+
             return;
         }
 
-        if (!defense) return;
+
+        if (!defense) {
+            return;
+        }
+
 
         try {
 
@@ -126,16 +163,18 @@ const DefensePage: React.FC = () => {
                 'Versão final da monografia submetida com sucesso.'
             );
 
-            // Atualizar dados
             await loadDefense();
 
         } catch (err: any) {
 
-            console.error(err);
+            console.error(
+                'Erro ao submeter documento:',
+                err
+            );
 
             setError(
                 err?.response?.data?.message ||
-                'Erro ao submeter a versão final.'
+                'Erro ao submeter a versão final da monografia.'
             );
 
         } finally {
@@ -143,8 +182,120 @@ const DefensePage: React.FC = () => {
             setUploading(false);
 
             event.target.value = '';
+
         }
     };
+
+
+    // =====================================================
+    // FORMATAR DATA
+    // =====================================================
+
+    const formatDate = (
+        date?: string | null
+    ) => {
+
+        if (!date) {
+            return '-';
+        }
+
+        const [year, month, day] =
+            date.split('T')[0].split('-');
+
+        return `${day}/${month}/${year}`;
+    };
+
+
+    // =====================================================
+    // FORMATAR HORA
+    // =====================================================
+
+    const formatTime = (
+        time?: string | null
+    ) => {
+
+        if (!time) {
+            return '-';
+        }
+
+        return time.substring(0, 5);
+
+    };
+
+
+    // =====================================================
+    // STATUS
+    // =====================================================
+
+    const getStatusLabel = (
+        status: string
+    ) => {
+
+        switch (status) {
+
+            case 'AGENDADO':
+                return 'Defesa agendada';
+
+            case 'REALIZADO':
+                return 'Defesa realizada';
+
+            case 'CANCELADO':
+                return 'Defesa cancelada';
+
+            default:
+                return status;
+
+        }
+    };
+
+
+    const getStatusSeverity = (
+        status: string
+    ) => {
+
+        switch (status) {
+
+            case 'AGENDADO':
+                return 'info';
+
+            case 'REALIZADO':
+                return 'success';
+
+            case 'CANCELADO':
+                return 'danger';
+
+            default:
+                return 'secondary';
+
+        }
+    };
+
+
+    // =====================================================
+    // ROLE DA BANCA
+    // =====================================================
+
+    const getRoleLabel = (
+        role: string
+    ) => {
+
+        switch (role) {
+
+            case 'PRESIDENTE':
+                return 'Presidente';
+
+            case 'ORIENTADOR':
+                return 'Orientador';
+
+            case 'OPONENTE':
+                return 'Oponente';
+
+            default:
+                return role;
+
+        }
+    };
+
 
     // =====================================================
     // LOADING
@@ -153,24 +304,69 @@ const DefensePage: React.FC = () => {
     if (loading) {
 
         return (
-            <div className="flex justify-center items-center min-h-[400px]">
 
-                <div className="text-center">
+            <div className="grid">
 
-                    <Loader2
-                        className="animate-spin mx-auto text-primary"
-                        size={40}
+                {/* HEADER */}
+
+                <div className="col-12">
+
+                    <Skeleton
+                        height="80px"
                     />
 
-                    <p className="mt-3 text-gray-500">
-                        A carregar informações da defesa...
-                    </p>
+                </div>
+
+
+                {/* STATUS */}
+
+                <div className="col-12">
+
+                    <Skeleton
+                        height="120px"
+                    />
+
+                </div>
+
+
+                {/* INFORMAÇÕES */}
+
+                <div className="col-12 lg:col-8">
+
+                    <Skeleton
+                        height="380px"
+                    />
+
+                </div>
+
+
+                {/* DOCUMENTO */}
+
+                <div className="col-12 lg:col-4">
+
+                    <Skeleton
+                        height="380px"
+                    />
+
+                </div>
+
+
+                {/* BANCA */}
+
+                <div className="col-12">
+
+                    <Skeleton
+                        height="280px"
+                    />
 
                 </div>
 
             </div>
+
         );
+
     }
+
 
     // =====================================================
     // SEM DEFESA
@@ -179,56 +375,66 @@ const DefensePage: React.FC = () => {
     if (!defense) {
 
         return (
-            <div className="p-6">
 
-                <div className="max-w-3xl mx-auto">
+            <div className="grid">
 
-                    <div className="bg-white rounded-xl border p-10 text-center">
+                <div className="col-12">
 
-                        <AlertCircle
-                            size={50}
-                            className="mx-auto text-gray-400"
-                        />
+                    <Card>
 
-                        <h2 className="text-xl font-semibold mt-4">
-                            Defesa ainda não agendada
-                        </h2>
+                        <div className="
+                            flex
+                            flex-column
+                            align-items-center
+                            justify-content-center
+                            text-center
+                            py-6
+                        ">
 
-                        <p className="text-gray-500 mt-2">
-                            Neste momento não existe uma defesa
-                            agendada para a sua monografia.
-                        </p>
+                            <i
+                                className="
+                                    pi
+                                    pi-calendar-times
+                                    text-400
+                                "
+                                style={{
+                                    fontSize: '3.5rem'
+                                }}
+                            />
 
-                    </div>
+                            <h3 className="
+                                text-900
+                                mt-4
+                                mb-2
+                            ">
+                                Defesa ainda não agendada
+                            </h3>
+
+                            <p className="
+                                text-600
+                                m-0
+                            ">
+                                Neste momento não existe uma
+                                defesa agendada para a sua
+                                monografia.
+                            </p>
+
+                        </div>
+
+                    </Card>
 
                 </div>
 
             </div>
+
         );
+
     }
 
-    // =====================================================
-    // FORMATAR DATA
-    // =====================================================
 
-    const formattedDate = new Date(
-        defense.schedule.date
-    ).toLocaleDateString('pt-MZ', {
-        weekday: 'long',
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-    });
+    const formattedDate =
+        formatDate(defense.schedule.date);
 
-    // =====================================================
-    // STATUS
-    // =====================================================
-
-    const statusLabel = {
-        AGENDADO: 'Defesa agendada',
-        REALIZADO: 'Defesa realizada',
-        CANCELADO: 'Defesa cancelada'
-    }[defense.schedule.status];
 
     // =====================================================
     // RENDER
@@ -236,517 +442,1173 @@ const DefensePage: React.FC = () => {
 
     return (
 
-        <div className="p-4 md:p-6">
-
-            <div className="max-w-6xl mx-auto">
-
-                {/* HEADER */}
-
-                <div className="mb-6">
-
-                    <h1 className="text-2xl font-bold text-gray-800">
-                        Minha Defesa
-                    </h1>
-
-                    <p className="text-gray-500 mt-1">
-                        Consulte os dados da sua defesa e submeta
-                        a versão final da monografia.
-                    </p>
-
-                </div>
-
-                {/* MESSAGES */}
-
-                {error && (
-
-                    <div className="mb-5 flex items-center gap-3
-                        bg-red-50 border border-red-200
-                        text-red-700 rounded-lg p-4">
-
-                        <AlertCircle size={20} />
-
-                        <span>{error}</span>
-
-                    </div>
-
-                )}
-
-                {success && (
-
-                    <div className="mb-5 flex items-center gap-3
-                        bg-green-50 border border-green-200
-                        text-green-700 rounded-lg p-4">
-
-                        <CheckCircle2 size={20} />
-
-                        <span>{success}</span>
-
-                    </div>
-
-                )}
-
-                {/* STATUS */}
-
-                <div className="bg-white rounded-xl border p-5 mb-6">
-
-                    <div className="flex items-center justify-between">
-
-                        <div>
-
-                            <p className="text-sm text-gray-500">
-                                Estado da defesa
-                            </p>
-
-                            <div className="flex items-center gap-2 mt-1">
-
-                                <CheckCircle2
-                                    size={20}
-                                    className="text-green-600"
-                                />
-
-                                <span className="font-semibold text-green-700">
-                                    {statusLabel}
-                                </span>
-
-                            </div>
-
-                        </div>
-
-                        <div className="text-right">
-
-                            <p className="text-sm text-gray-500">
-                                Data
-                            </p>
-
-                            <p className="font-semibold capitalize">
-                                {formattedDate}
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                {/* GRID */}
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                    {/* ================================= */}
-                    {/* DADOS DA DEFESA */}
-                    {/* ================================= */}
-
-                    <div className="lg:col-span-2 space-y-6">
-
-                        {/* TCC */}
-
-                        <div className="bg-white rounded-xl border p-6">
-
-                            <div className="flex items-start gap-4">
-
-                                <div className="p-3 rounded-lg bg-blue-50">
-
-                                    <FileText
-                                        className="text-blue-600"
-                                        size={25}
-                                    />
-
-                                </div>
-
-                                <div>
-
-                                    <p className="text-sm text-gray-500">
-                                        Título da monografia
-                                    </p>
-
-                                    <h2 className="text-lg font-semibold mt-1">
-                                        {defense.tcc.title}
-                                    </h2>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                        {/* DATA / HORA / SALA */}
-
-                        <div className="bg-white rounded-xl border p-6">
-
-                            <h2 className="font-semibold text-lg mb-5">
-                                Informações da defesa
-                            </h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                                <InfoItem
-                                    icon={<Calendar size={20} />}
-                                    label="Data"
-                                    value={formattedDate}
-                                />
-
-                                <InfoItem
-                                    icon={<Clock size={20} />}
-                                    label="Horário"
-                                    value={`${defense.schedule.start_time} - ${defense.schedule.end_time}`}
-                                />
-
-                                <InfoItem
-                                    icon={<MapPin size={20} />}
-                                    label="Sala"
-                                    value={defense.room.name}
-                                />
-
-                                <InfoItem
-                                    icon={<MapPin size={20} />}
-                                    label="Localização"
-                                    value={
-                                        defense.room.location ||
-                                        'Não informada'
-                                    }
-                                />
-
-                            </div>
-
-                        </div>
-
-                        {/* BANCA */}
-
-                        <div className="bg-white rounded-xl border p-6">
-
-                            <div className="flex items-center gap-3 mb-5">
-
-                                <Users size={22} />
-
-                                <h2 className="font-semibold text-lg">
-                                    Banca examinadora
-                                </h2>
-
-                            </div>
-
-                            <div className="space-y-3">
-
-                                {defense.jury.length === 0 ? (
-
-                                    <p className="text-gray-500">
-                                        A banca ainda não foi definida.
-                                    </p>
-
-                                ) : (
-
-                                    defense.jury.map(member => (
-
-                                        <div
-                                            key={member.id}
-                                            className="flex items-center gap-4
-                                                p-4 rounded-lg bg-gray-50
-                                                border"
-                                        >
-
-                                            <div className="p-2 rounded-full bg-white">
-
-                                                <UserRound size={20} />
-
-                                            </div>
-
-                                            <div className="flex-1">
-
-                                                <p className="font-medium">
-                                                    {member.name}
-                                                </p>
-
-                                                <p className="text-sm text-gray-500">
-                                                    {member.email}
-                                                </p>
-
-                                            </div>
-
-                                            <span className="
-                                                px-3 py-1
-                                                rounded-full
-                                                text-xs
-                                                font-medium
-                                                bg-blue-50
-                                                text-blue-700
-                                            ">
-                                                {member.role}
-                                            </span>
-
-                                        </div>
-
-                                    ))
-
-                                )}
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    {/* ================================= */}
-                    {/* DOCUMENTO */}
-                    {/* ================================= */}
+        <div className="grid">
+
+            {/* ================================================= */}
+            {/* CABEÇALHO */}
+            {/* ================================================= */}
+
+            <div className="col-12">
+
+                <div className="
+                    flex
+                    flex-column
+                    md:flex-row
+                    md:align-items-center
+                    md:justify-content-between
+                    gap-3
+                ">
 
                     <div>
 
-                        <div className="bg-white rounded-xl border p-6 sticky top-6">
+                        <h3 className="
+                            text-900
+                            font-semibold
+                            m-0
+                        ">
+                            Minha Defesa
+                        </h3>
 
-                            <div className="flex items-center gap-3 mb-5">
+                        <p className="
+                            text-600
+                            mt-2
+                            mb-0
+                        ">
+                            Consulte os dados da sua defesa,
+                            a banca examinadora e submeta a
+                            versão final da monografia.
+                        </p>
 
-                                <FileText
-                                    size={22}
-                                    className="text-primary"
-                                />
+                    </div>
 
-                                <h2 className="font-semibold text-lg">
-                                    Versão final
-                                </h2>
+
+                    <Tag
+                        value={getStatusLabel(
+                            defense.schedule.status
+                        )}
+                        // severity={getStatusSeverity(
+                        //     defense.schedule.status
+                        // )}
+                    />
+
+                </div>
+
+            </div>
+
+
+            {/* ================================================= */}
+            {/* MENSAGENS */}
+            {/* ================================================= */}
+
+            {error && (
+
+                <div className="col-12">
+
+                    <Message
+                        severity="error"
+                        text={error}
+                        className="w-full"
+                    />
+
+                </div>
+
+            )}
+
+
+            {success && (
+
+                <div className="col-12">
+
+                    <Message
+                        severity="success"
+                        text={success}
+                        className="w-full"
+                    />
+
+                </div>
+
+            )}
+
+
+            {/* ================================================= */}
+            {/* RESUMO DA DEFESA */}
+            {/* ================================================= */}
+
+            <div className="col-12">
+
+                <Card>
+
+                    <div className="grid">
+
+                        {/* DATA */}
+
+                        <div className="
+                            col-12
+                            md:col-4
+                        ">
+
+                            <div className="
+                                flex
+                                align-items-center
+                                gap-3
+                            ">
+
+                                <div className="
+                                    flex
+                                    align-items-center
+                                    justify-content-center
+                                    border-round
+                                    bg-blue-100
+                                    w-3rem
+                                    h-3rem
+                                ">
+
+                                    <i className="
+                                        pi
+                                        pi-calendar
+                                        text-blue-500
+                                        text-xl
+                                    " />
+
+                                </div>
+
+                                <div>
+
+                                    <span className="
+                                        block
+                                        text-500
+                                        text-sm
+                                    ">
+                                        Data da defesa
+                                    </span>
+
+                                    <span className="
+                                        block
+                                        text-900
+                                        font-semibold
+                                        mt-1
+                                    ">
+                                        {formattedDate}
+                                    </span>
+
+                                </div>
 
                             </div>
 
-                            {defense.document.uploaded ? (
+                        </div>
+
+
+                        {/* HORÁRIO */}
+
+                        <div className="
+                            col-12
+                            md:col-4
+                        ">
+
+                            <div className="
+                                flex
+                                align-items-center
+                                gap-3
+                            ">
+
+                                <div className="
+                                    flex
+                                    align-items-center
+                                    justify-content-center
+                                    border-round
+                                    bg-orange-100
+                                    w-3rem
+                                    h-3rem
+                                ">
+
+                                    <i className="
+                                        pi
+                                        pi-clock
+                                        text-orange-500
+                                        text-xl
+                                    " />
+
+                                </div>
 
                                 <div>
 
-                                    <div className="
-                                        bg-green-50
-                                        border border-green-200
-                                        rounded-lg
-                                        p-4
-                                        mb-4
+                                    <span className="
+                                        block
+                                        text-500
+                                        text-sm
                                     ">
+                                        Horário
+                                    </span>
 
-                                        <div className="flex gap-3">
+                                    <span className="
+                                        block
+                                        text-900
+                                        font-semibold
+                                        mt-1
+                                    ">
+                                        {formatTime(
+                                            defense.schedule.start_time
+                                        )}
+                                        {' - '}
+                                        {formatTime(
+                                            defense.schedule.end_time
+                                        )}
+                                    </span>
 
-                                            <CheckCircle2
-                                                className="text-green-600"
-                                                size={22}
-                                            />
+                                </div>
 
-                                            <div>
+                            </div>
 
-                                                <p className="font-medium text-green-800">
-                                                    Documento submetido
-                                                </p>
+                        </div>
 
-                                                <p className="text-sm text-green-700 mt-1">
-                                                    A versão final da sua
-                                                    monografia já foi carregada.
-                                                </p>
 
-                                            </div>
+                        {/* SALA */}
 
-                                        </div>
+                        <div className="
+                            col-12
+                            md:col-4
+                        ">
 
-                                    </div>
+                            <div className="
+                                flex
+                                align-items-center
+                                gap-3
+                            ">
 
-                                    {defense.document.url && (
+                                <div className="
+                                    flex
+                                    align-items-center
+                                    justify-content-center
+                                    border-round
+                                    bg-purple-100
+                                    w-3rem
+                                    h-3rem
+                                ">
 
-                                        <a
-                                            href={defense.document.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="
-                                                w-full
-                                                flex
-                                                justify-center
-                                                items-center
-                                                gap-2
-                                                px-4
-                                                py-3
-                                                rounded-lg
-                                                border
-                                                border-gray-300
-                                                hover:bg-gray-50
-                                                transition
-                                            "
-                                        >
+                                    <i className="
+                                        pi
+                                        pi-building
+                                        text-purple-500
+                                        text-xl
+                                    " />
 
-                                            <Download size={18} />
+                                </div>
 
-                                            Ver documento
+                                <div>
 
-                                        </a>
+                                    <span className="
+                                        block
+                                        text-500
+                                        text-sm
+                                    ">
+                                        Sala
+                                    </span>
+
+                                    <span className="
+                                        block
+                                        text-900
+                                        font-semibold
+                                        mt-1
+                                    ">
+                                        {defense.room.name}
+                                    </span>
+
+                                    {defense.room.location && (
+
+                                        <span className="
+                                            block
+                                            text-500
+                                            text-sm
+                                            mt-1
+                                        ">
+                                            {defense.room.location}
+                                        </span>
 
                                     )}
 
-                                    <button
-                                        type="button"
-                                        onClick={handleSelectFile}
-                                        disabled={uploading}
-                                        className="
-                                            w-full
-                                            mt-3
-                                            flex
-                                            justify-center
-                                            items-center
-                                            gap-2
-                                            px-4
-                                            py-3
-                                            rounded-lg
-                                            bg-primary
-                                            text-white
-                                            hover:opacity-90
-                                            disabled:opacity-50
-                                        "
-                                    >
-
-                                        <Upload size={18} />
-
-                                        Substituir documento
-
-                                    </button>
-
                                 </div>
 
-                            ) : (
+                            </div>
 
-                                <div>
+                        </div>
 
-                                    <div className="
-                                        bg-yellow-50
-                                        border border-yellow-200
-                                        rounded-lg
-                                        p-4
-                                        mb-5
-                                    ">
+                    </div>
 
-                                        <div className="flex gap-3">
+                </Card>
 
-                                            <AlertCircle
-                                                className="text-yellow-600"
-                                                size={22}
-                                            />
+            </div>
 
-                                            <div>
 
-                                                <p className="font-medium text-yellow-800">
-                                                    Documento pendente
-                                                </p>
+            {/* ================================================= */}
+            {/* TÍTULO + INFORMAÇÕES */}
+            {/* ================================================= */}
 
-                                                <p className="text-sm text-yellow-700 mt-1">
-                                                    Submeta a versão final
-                                                    da sua monografia em PDF.
-                                                </p>
+            <div className="col-12 lg:col-8">
 
-                                            </div>
+                <Card>
 
-                                        </div>
+                    {/* TÍTULO */}
 
-                                    </div>
+                    <div className="
+                        flex
+                        align-items-start
+                        gap-3
+                    ">
 
-                                    <button
-                                        type="button"
-                                        onClick={handleSelectFile}
-                                        disabled={uploading}
-                                        className="
-                                            w-full
-                                            flex
-                                            justify-center
-                                            items-center
-                                            gap-2
-                                            px-4
-                                            py-3
-                                            rounded-lg
-                                            bg-primary
-                                            text-white
-                                            hover:opacity-90
-                                            disabled:opacity-50
-                                        "
-                                    >
+                        <div className="
+                            flex
+                            align-items-center
+                            justify-content-center
+                            border-round
+                            bg-primary-100
+                            w-3rem
+                            h-3rem
+                            flex-shrink-0
+                        ">
 
-                                        {uploading ? (
+                            <i className="
+                                pi
+                                pi-book
+                                text-primary
+                                text-xl
+                            " />
 
-                                            <>
-                                                <Loader2
-                                                    size={18}
-                                                    className="animate-spin"
-                                                />
+                        </div>
 
-                                                A enviar...
 
-                                            </>
+                        <div>
 
-                                        ) : (
+                            <span className="
+                                block
+                                text-500
+                                text-sm
+                            ">
+                                Trabalho de Culminação de Curso
+                            </span>
 
-                                            <>
-                                                <Upload size={18} />
+                            <h4 className="
+                                text-900
+                                mt-1
+                                mb-0
+                                line-height-3
+                            ">
+                                {defense.tcc.title}
+                            </h4>
 
-                                                Submeter versão final
+                        </div>
 
-                                            </>
+                    </div>
 
-                                        )}
 
-                                    </button>
+                    <Divider />
 
-                                    <p className="text-xs text-gray-500 mt-3 text-center">
-                                        Apenas PDF · Máximo 10 MB
-                                    </p>
 
-                                </div>
+                    {/* INFORMAÇÕES */}
 
-                            )}
+                    <h5 className="
+                        text-900
+                        m-0
+                    ">
+                        Informações da defesa
+                    </h5>
 
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="application/pdf,.pdf"
-                                className="hidden"
-                                onChange={handleUpload}
+
+                    <div className="grid mt-2">
+
+                        <div className="
+                            col-12
+                            md:col-6
+                        ">
+
+                            <InfoItem
+                                icon="pi-calendar"
+                                label="Data"
+                                value={formattedDate}
+                                iconClass="text-blue-500"
+                                bgClass="bg-blue-100"
+                            />
+
+                        </div>
+
+
+                        <div className="
+                            col-12
+                            md:col-6
+                        ">
+
+                            <InfoItem
+                                icon="pi-clock"
+                                label="Horário"
+                                value={`
+                                    ${formatTime(
+                                        defense.schedule.start_time
+                                    )}
+                                    -
+                                    ${formatTime(
+                                        defense.schedule.end_time
+                                    )}
+                                `}
+                                iconClass="text-orange-500"
+                                bgClass="bg-orange-100"
+                            />
+
+                        </div>
+
+
+                        <div className="
+                            col-12
+                            md:col-6
+                        ">
+
+                            <InfoItem
+                                icon="pi-building"
+                                label="Sala"
+                                value={defense.room.name}
+                                iconClass="text-purple-500"
+                                bgClass="bg-purple-100"
+                            />
+
+                        </div>
+
+
+                        <div className="
+                            col-12
+                            md:col-6
+                        ">
+
+                            <InfoItem
+                                icon="pi-map-marker"
+                                label="Localização"
+                                value={
+                                    defense.room.location ||
+                                    'Não informada'
+                                }
+                                iconClass="text-green-500"
+                                bgClass="bg-green-100"
                             />
 
                         </div>
 
                     </div>
 
-                </div>
+                </Card>
+
+            </div>
+
+
+            {/* ================================================= */}
+            {/* DOCUMENTO */}
+            {/* ================================================= */}
+
+            <div className="
+                col-12
+                lg:col-4
+            ">
+
+                <Card>
+
+                    <div className="
+                        flex
+                        align-items-center
+                        justify-content-between
+                        gap-2
+                    ">
+
+                        <div>
+
+                            <h5 className="
+                                text-900
+                                m-0
+                            ">
+                                Versão final
+                            </h5>
+
+                            <small className="
+                                text-500
+                            ">
+                                Monografia
+                            </small>
+
+                        </div>
+
+
+                        <i className="
+                            pi
+                            pi-file-pdf
+                            text-primary
+                            text-2xl
+                        " />
+
+                    </div>
+
+
+                    <Divider />
+
+
+                    {defense.document.uploaded ? (
+
+                        <>
+
+                            <div className="
+                                surface-50
+                                border-round-lg
+                                p-3
+                            ">
+
+                                <div className="
+                                    flex
+                                    align-items-start
+                                    gap-3
+                                ">
+
+                                    <i className="
+                                        pi
+                                        pi-check-circle
+                                        text-green-500
+                                        text-xl
+                                    " />
+
+                                    <div>
+
+                                        <span className="
+                                            block
+                                            text-900
+                                            font-semibold
+                                        ">
+                                            Documento submetido
+                                        </span>
+
+                                        <span className="
+                                            block
+                                            text-600
+                                            text-sm
+                                            mt-1
+                                            line-height-3
+                                        ">
+                                            A versão final da
+                                            monografia já foi
+                                            carregada.
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {defense.document.url && (
+
+                                <Button
+                                    label="Ver documento"
+                                    icon="pi pi-eye"
+                                    outlined
+                                    className="w-full mt-3"
+                                    onClick={() =>
+                                        window.open(
+                                            defense.document.url!,
+                                            '_blank',
+                                            'noopener,noreferrer'
+                                        )
+                                    }
+                                />
+
+                            )}
+
+
+                            <Button
+                                label={
+                                    uploading
+                                        ? 'A substituir...'
+                                        : 'Substituir documento'
+                                }
+                                icon={
+                                    uploading
+                                        ? 'pi pi-spin pi-spinner'
+                                        : 'pi pi-upload'
+                                }
+                                className="w-full mt-2"
+                                disabled={uploading}
+                                onClick={handleSelectFile}
+                            />
+
+                        </>
+
+                    ) : (
+
+                        <>
+
+                            <div className="
+                                surface-50
+                                border-round-lg
+                                p-3
+                            ">
+
+                                <div className="
+                                    flex
+                                    align-items-start
+                                    gap-3
+                                ">
+
+                                    <i className="
+                                        pi
+                                        pi-exclamation-circle
+                                        text-orange-500
+                                        text-xl
+                                    " />
+
+                                    <div>
+
+                                        <span className="
+                                            block
+                                            text-900
+                                            font-semibold
+                                        ">
+                                            Documento pendente
+                                        </span>
+
+                                        <span className="
+                                            block
+                                            text-600
+                                            text-sm
+                                            mt-1
+                                            line-height-3
+                                        ">
+                                            Submeta a versão final
+                                            da sua monografia em
+                                            formato PDF.
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <Button
+                                label={
+                                    uploading
+                                        ? 'A enviar...'
+                                        : 'Submeter versão final'
+                                }
+                                icon={
+                                    uploading
+                                        ? 'pi pi-spin pi-spinner'
+                                        : 'pi pi-upload'
+                                }
+                                className="w-full mt-3"
+                                disabled={uploading}
+                                onClick={handleSelectFile}
+                            />
+
+
+                            <small className="
+                                block
+                                text-center
+                                text-500
+                                mt-3
+                            ">
+                                Apenas PDF · Máximo 10 MB
+                            </small>
+
+                        </>
+
+                    )}
+
+
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        className="hidden"
+                        onChange={handleUpload}
+                    />
+
+                </Card>
+
+            </div>
+
+
+            {/* ================================================= */}
+            {/* BANCA EXAMINADORA */}
+            {/* ================================================= */}
+
+            <div className="col-12">
+
+                <Card>
+
+                    <div className="
+                        flex
+                        align-items-center
+                        justify-content-between
+                    ">
+
+                        <div>
+
+                            <h5 className="
+                                text-900
+                                m-0
+                            ">
+                                Banca examinadora
+                            </h5>
+
+                            <small className="
+                                text-500
+                            ">
+                                Membros responsáveis pela avaliação
+                                da defesa
+                            </small>
+
+                        </div>
+
+
+                        <i className="
+                            pi
+                            pi-users
+                            text-primary
+                            text-2xl
+                        " />
+
+                    </div>
+
+
+                    <Divider />
+
+
+                    {defense.jury.length === 0 ? (
+
+                        <div className="
+                            text-center
+                            py-5
+                        ">
+
+                            <i className="
+                                pi
+                                pi-users
+                                text-400
+                                text-4xl
+                            " />
+
+                            <p className="
+                                text-500
+                                mt-3
+                                mb-0
+                            ">
+                                A banca examinadora ainda
+                                não foi definida.
+                            </p>
+
+                        </div>
+
+                    ) : (
+
+                        <div className="grid">
+
+                            {defense.jury.map(
+                                (member) => (
+
+                                    <div
+                                        key={member.id}
+                                        className="
+                                            col-12
+                                            md:col-6
+                                            lg:col-4
+                                        "
+                                    >
+
+                                        <div className="
+                                            surface-50
+                                            border-round-lg
+                                            p-3
+                                            h-full
+                                        ">
+
+                                            <div className="
+                                                flex
+                                                align-items-center
+                                                gap-3
+                                            ">
+
+                                                <div className="
+                                                    flex
+                                                    align-items-center
+                                                    justify-content-center
+                                                    border-circle
+                                                    bg-primary
+                                                    text-white
+                                                    w-3rem
+                                                    h-3rem
+                                                    flex-shrink-0
+                                                ">
+
+                                                    <i className="
+                                                        pi
+                                                        pi-user
+                                                    " />
+
+                                                </div>
+
+
+                                                <div className="
+                                                    min-w-0
+                                                    flex-1
+                                                ">
+
+                                                    <span className="
+                                                        block
+                                                        text-900
+                                                        font-semibold
+                                                        white-space-nowrap
+                                                        overflow-hidden
+                                                        text-overflow-ellipsis
+                                                    ">
+                                                        {member.name}
+                                                    </span>
+
+                                                    <Tag
+                                                        value={getRoleLabel(
+                                                            member.role
+                                                        )}
+                                                        severity="info"
+                                                        className="mt-2"
+                                                    />
+
+                                                    {member.email && (
+
+                                                        <span className="
+                                                            block
+                                                            text-500
+                                                            text-sm
+                                                            mt-2
+                                                            overflow-hidden
+                                                            text-overflow-ellipsis
+                                                        ">
+                                                            {member.email}
+                                                        </span>
+
+                                                    )}
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                )
+                            )}
+
+                        </div>
+
+                    )}
+
+                </Card>
+
+            </div>
+
+
+            {/* ================================================= */}
+            {/* LOCALIZAÇÃO */}
+            {/* ================================================= */}
+
+            <div className="
+                col-12
+                lg:col-6
+            ">
+
+                <Card>
+
+                    <div className="
+                        flex
+                        align-items-center
+                        gap-2
+                    ">
+
+                        <i className="
+                            pi
+                            pi-map-marker
+                            text-primary
+                            text-xl
+                        " />
+
+                        <h5 className="
+                            text-900
+                            m-0
+                        ">
+                            Local da defesa
+                        </h5>
+
+                    </div>
+
+
+                    <Divider />
+
+
+                    <div className="
+                        surface-50
+                        border-round-lg
+                        p-4
+                    ">
+
+                        <div className="
+                            flex
+                            align-items-center
+                            gap-3
+                        ">
+
+                            <div className="
+                                flex
+                                align-items-center
+                                justify-content-center
+                                border-round
+                                bg-primary-100
+                                w-3rem
+                                h-3rem
+                            ">
+
+                                <i className="
+                                    pi
+                                    pi-building
+                                    text-primary
+                                    text-xl
+                                " />
+
+                            </div>
+
+
+                            <div>
+
+                                <span className="
+                                    block
+                                    text-900
+                                    font-semibold
+                                ">
+                                    {defense.room.name}
+                                </span>
+
+                                <span className="
+                                    block
+                                    text-600
+                                    text-sm
+                                    mt-1
+                                ">
+                                    {defense.room.location ||
+                                        'Localização não informada'}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </Card>
+
+            </div>
+
+
+            {/* ================================================= */}
+            {/* RESUMO DO HORÁRIO */}
+            {/* ================================================= */}
+
+            <div className="
+                col-12
+                lg:col-6
+            ">
+
+                <Card>
+
+                    <div className="
+                        flex
+                        align-items-center
+                        gap-2
+                    ">
+
+                        <i className="
+                            pi
+                            pi-calendar
+                            text-primary
+                            text-xl
+                        " />
+
+                        <h5 className="
+                            text-900
+                            m-0
+                        ">
+                            Agendamento
+                        </h5>
+
+                    </div>
+
+
+                    <Divider />
+
+
+                    <div className="
+                        surface-50
+                        border-round-lg
+                        p-4
+                    ">
+
+                        <div className="
+                            flex
+                            align-items-center
+                            justify-content-between
+                            gap-3
+                        ">
+
+                            <div>
+
+                                <span className="
+                                    block
+                                    text-500
+                                    text-sm
+                                ">
+                                    Data
+                                </span>
+
+                                <span className="
+                                    block
+                                    text-900
+                                    font-semibold
+                                    mt-1
+                                ">
+                                    {formattedDate}
+                                </span>
+
+                            </div>
+
+
+                            <div className="
+                                text-right
+                            ">
+
+                                <span className="
+                                    block
+                                    text-500
+                                    text-sm
+                                ">
+                                    Horário
+                                </span>
+
+                                <span className="
+                                    block
+                                    text-900
+                                    font-semibold
+                                    mt-1
+                                ">
+                                    {formatTime(
+                                        defense.schedule.start_time
+                                    )}
+                                    {' - '}
+                                    {formatTime(
+                                        defense.schedule.end_time
+                                    )}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </Card>
 
             </div>
 
         </div>
+
     );
 };
+
 
 // =====================================================
 // COMPONENTE DE INFORMAÇÃO
 // =====================================================
 
 interface InfoItemProps {
-    icon: React.ReactNode;
+
+    icon: string;
+
     label: string;
+
     value: string;
+
+    iconClass: string;
+
+    bgClass: string;
+
 }
+
 
 const InfoItem: React.FC<InfoItemProps> = ({
     icon,
     label,
-    value
+    value,
+    iconClass,
+    bgClass
 }) => {
 
     return (
 
-        <div className="flex items-start gap-3">
+        <div className="
+            flex
+            align-items-center
+            gap-3
+        ">
 
-            <div className="text-primary mt-1">
-                {icon}
+            <div className={`
+                flex
+                align-items-center
+                justify-content-center
+                border-round
+                ${bgClass}
+                w-3rem
+                h-3rem
+                flex-shrink-0
+            `}>
+
+                <i
+                    className={`
+                        pi
+                        ${icon}
+                        ${iconClass}
+                        text-xl
+                    `}
+                />
+
             </div>
 
-            <div>
 
-                <p className="text-sm text-gray-500">
+            <div className="min-w-0">
+
+                <span className="
+                    block
+                    text-500
+                    text-sm
+                ">
                     {label}
-                </p>
+                </span>
 
-                <p className="font-medium capitalize">
-                    {value}
-                </p>
+                <span className="
+                    block
+                    text-900
+                    font-semibold
+                    mt-1
+                    line-height-2
+                ">
+                    {value.trim()}
+                </span>
 
             </div>
 
         </div>
+
     );
+
 };
+
 
 export default DefensePage;

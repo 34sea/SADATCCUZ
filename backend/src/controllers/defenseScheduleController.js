@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const path = require('path');
 
 // ==========================================
 // 1. GESTÃO DE SALAS DE DEFESA
@@ -477,6 +478,128 @@ exports.removeJuryMember = async (req, res) => {
 // CARREGAR VERSÃO FINAL DA MONOGRAFIA
 // =====================================================
 
+// exports.uploadDefenseDocument = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     // =====================================================
+//     // VERIFICAR ARQUIVO
+//     // =====================================================
+
+//     if (!req.file) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Selecione um arquivo PDF.'
+//       });
+//     }
+
+//     // =====================================================
+//     // VERIFICAR DEFESA
+//     // =====================================================
+
+//     const [schedules] = await pool.query(
+//       `
+//       SELECT
+//         id,
+//         student_id,
+//         status,
+//         tcc_document_url
+//       FROM defense_schedules
+//       WHERE id = ?
+//       `,
+//       [id]
+//     );
+
+//     if (schedules.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Agendamento de defesa não encontrado.'
+//       });
+//     }
+
+//     const schedule = schedules[0];
+
+//     // =====================================================
+//     // GARANTIR QUE A DEFESA PERTENCE AO ESTUDANTE
+//     // =====================================================
+
+//     if (Number(schedule.student_id) !== Number(req.user.id)) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Não tem permissão para carregar o documento desta defesa.'
+//       });
+//     }
+
+//     // =====================================================
+//     // VERIFICAR STATUS
+//     // =====================================================
+
+//     if (schedule.status !== 'AGENDADO') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'A versão final só pode ser submetida para uma defesa agendada.'
+//       });
+//     }
+
+//     // =====================================================
+//     // GARANTIR PDF
+//     // =====================================================
+
+//     if (req.file.mimetype !== 'application/pdf') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Apenas arquivos PDF são permitidos.'
+//       });
+//     }
+
+//     // =====================================================
+//     // CAMINHO DO DOCUMENTO
+//     // =====================================================
+
+//     const documentPath = path
+//       .join('uploads', 'pdf', req.file.filename)
+//       .replace(/\\/g, '/');
+
+//     // =====================================================
+//     // ATUALIZAR DEFESA
+//     // =====================================================
+
+//     await pool.query(
+//       `
+//       UPDATE defense_schedules
+//       SET tcc_document_url = ?
+//       WHERE id = ?
+//       `,
+//       [documentPath, id]
+//     );
+
+//     const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Versão final da monografia submetida com sucesso.',
+//       data: {
+//         id: schedule.id,
+//         tcc_document_url: `${baseUrl}/${documentPath}`,
+//         filename: req.file.filename
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error('Erro ao carregar versão final:', error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Erro ao carregar a versão final da monografia.',
+//       error: error.message
+//     });
+//   }
+// };
+
+// =====================================================
+// CARREGAR VERSÃO FINAL DA MONOGRAFIA
+// =====================================================
+
 exports.uploadDefenseDocument = async (req, res) => {
   try {
     const { id } = req.params;
@@ -552,15 +675,18 @@ exports.uploadDefenseDocument = async (req, res) => {
     }
 
     // =====================================================
-    // CAMINHO DO DOCUMENTO
+    // CAMINHO RELATIVO DO DOCUMENTO
     // =====================================================
 
     const documentPath = path
       .join('uploads', 'pdf', req.file.filename)
       .replace(/\\/g, '/');
 
+    // Resultado:
+    // uploads/pdf/tcc-document-123456.pdf
+
     // =====================================================
-    // ATUALIZAR DEFESA
+    // ATUALIZAR BANCO DE DADOS
     // =====================================================
 
     await pool.query(
@@ -572,20 +698,34 @@ exports.uploadDefenseDocument = async (req, res) => {
       [documentPath, id]
     );
 
+    // =====================================================
+    // URL PÚBLICA
+    // =====================================================
+
     const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const documentUrl = `${baseUrl}/${documentPath}`;
+
+    // =====================================================
+    // RESPOSTA
+    // =====================================================
 
     return res.status(200).json({
       success: true,
       message: 'Versão final da monografia submetida com sucesso.',
       data: {
         id: schedule.id,
-        tcc_document_url: `${baseUrl}/${documentPath}`,
+        tcc_document_url: documentUrl,
         filename: req.file.filename
       }
     });
 
   } catch (error) {
-    console.error('Erro ao carregar versão final:', error);
+
+    console.error(
+      'Erro ao carregar versão final:',
+      error
+    );
 
     return res.status(500).json({
       success: false,
